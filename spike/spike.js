@@ -190,9 +190,12 @@ function computeMetrics(samples, loadAndCompileMs, firstInferenceMs) {
   };
 }
 
+// The complete set — LiteRT's DType is exactly these three
+// (reference/.../packages/core/src/datatypes.ts DATATYPES).
 const DTYPE_CTOR = {
-  float32: Float32Array, float16: Uint16Array, int32: Int32Array,
-  uint32: Uint32Array, int8: Int8Array, uint8: Uint8Array, bool: Uint8Array,
+  float32: Float32Array,
+  int32: Int32Array,
+  uint8: Uint8Array,
 };
 
 /** Zero-filled inputs of whatever shape the model declares. Accuracy is not
@@ -200,9 +203,12 @@ const DTYPE_CTOR = {
 function makeInputs(Tensor, details) {
   const inputs = {};
   for (const d of details) {
+    const Ctor = DTYPE_CTOR[d.dtype];
+    // Fail loudly. Defaulting to Float32Array would allocate the wrong byte
+    // length for a narrower dtype and produce confusing downstream errors.
+    if (!Ctor) throw new Error(`Unhandled input dtype "${d.dtype}" on "${d.name}"`);
     const shape = Array.from(d.shape);
     const count = shape.reduce((a, b) => a * b, 1);
-    const Ctor = DTYPE_CTOR[d.dtype] ?? Float32Array;
     inputs[d.name] = new Tensor(new Ctor(count), shape);
   }
   return inputs;
