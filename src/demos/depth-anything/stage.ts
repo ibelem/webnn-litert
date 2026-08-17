@@ -42,7 +42,16 @@ export class DepthAnythingStage {
 
   constructor(canvas: HTMLCanvasElement) {
     const offscreen = canvas.transferControlToOffscreen();
-    this.worker = new Worker(new URL('./worker-entry.ts', import.meta.url), {type: 'module'});
+    // MUST be a classic worker (no `type: 'module'`). LiteRT's Emscripten
+    // WASM loader calls importScripts() internally, and module workers throw
+    // "Module scripts don't support importScripts()" the moment that runs —
+    // confirmed against web-ai-run's inference.worker.ts, which carries the
+    // same constraint verbatim. Vite still bundles worker-entry.ts's static
+    // imports away into a plain IIFE for a classic worker; the CDN's dynamic
+    // `import()` inside loader.ts is unaffected — dynamic import is a runtime
+    // expression available in both classic and module scripts, unlike the
+    // synchronous importScripts() API this restriction is actually about.
+    this.worker = new Worker(new URL('./worker-entry.ts', import.meta.url));
     const init: MainToWorkerMessage = {type: 'init', canvas: offscreen};
     this.worker.postMessage(init, [offscreen]);
   }
