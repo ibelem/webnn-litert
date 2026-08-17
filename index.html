@@ -1,1 +1,29 @@
-Hello LiteRT.js on WebGPU and WebNN!
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LiteRT.js on WebNN</title>
+<meta name="description"
+      content="Run .tflite models in the browser on WebGPU, WebNN GPU and WebNN NPU with LiteRT.js — with proof the requested backend actually ran.">
+<link rel="stylesheet" href="/src/ui/tokens.css">
+<link rel="stylesheet" href="/src/home/home.css">
+</head>
+<body>
+<main class="wrap">
+  <h1>LiteRT.js on WebNN</h1>
+  <p class="lede">
+    <code>.tflite</code> models running in the browser on WebGPU, WebNN GPU and WebNN NPU —
+    each with proof the requested backend actually ran. Chrome M153+ or Canary.
+  </p>
+
+  <ul class="demo-grid" id="demo-grid"></ul>
+
+  <p class="lede small">
+    Delegation truth harness for arbitrary models, versions and backends:
+    <a href="/debug">/debug</a>
+  </p>
+</main>
+<script type="module" src="/src/home/main.ts"></script>
+</body>
+</html>

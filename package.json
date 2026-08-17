@@ -1,0 +1,24 @@
+{
+  "name": "webnn-litert",
+  "private": true,
+  "type": "module",
+  "description": "LiteRT.js demos on WebGPU, WebNN GPU and WebNN NPU, with delegation receipts",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "vite --host",
+    "build": "npm run typecheck && npm run lint:css && vite build",
+    "preview": "vite preview --host",
+    "typecheck": "tsc --noEmit",
+    "lint:css": "stylelint \"src/**/*.css\""
+  },
+  "devDependencies": {
+    "@litertjs/core": "^2.5.3",
+    "@webgpu/types": "^0.1.71",
+    "stylelint": "^17.14.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.1"
+  }
+}

@@ -138,26 +138,50 @@ site for two moving specs benefits from still building untouched in three years.
 Vite still handles the build, dev-server isolation headers, worker bundling and
 multi-page output — only the UI framework is dropped.
 
+Built and verified as of this revision (`npm run build` green: tsc + stylelint + vite):
+
 ```
 webnn-litert/
-├── vercel.json                # COOP: same-origin, COEP: require-corp
-├── vite.config.ts             # same headers for the dev server
-├── src/
-│   ├── registry.ts            # DemoDefinition[] — single source of truth
-│   ├── demos/                 # one file per demo, five total
-│   ├── runner/
-│   │   ├── litert.worker.ts   # owns loadLiteRt / loadAndCompile / run
-│   │   ├── scheduler.ts       # measurement token — one backend at a time
-│   │   ├── metrics.ts         # computeMetrics, ported from web-ai-run
-│   │   └── receipts.ts        # isFullyAccelerated + console capture
-│   └── ui/
-│       ├── tokens.css         # the ONLY source of color, space, type
-│       ├── compare-grid.ts    # chrome; rebuilt freely
-│       ├── receipt-badge.ts   # locked — no style overrides
-│       ├── metric-row.ts      # locked — no style overrides
-│       └── console-mirror.ts  # ported from model_tester/src/console_mirror.ts
-└── public/wasm/               # from @litertjs/core/wasm (JSPI build)
+├── vercel.json                # COOP/COEP headers, cleanUrls, outputDirectory dist
+├── vite.config.ts             # same headers for dev+preview; MPA entry map
+├── tsconfig.json              # strict, noUncheckedIndexedAccess, verbatimModuleSyntax
+├── .stylelintrc.json          # bans raw hex / raw px outside tokens.css
+├── index.html                 # home — registry-generated card grid
+├── debug.html                 # /debug via cleanUrls — delegation truth harness
+├── public/fonts/              # woff2, copied from webnn-docs (see its README)
+└── src/
+    ├── registry.ts            # DEMOS[] — single source of truth, all five models
+    ├── runner/
+    │   ├── types.ts           # Backend, Delegation, Metrics, RunRecord
+    │   ├── loader.ts          # CDN load, semver gate, locateFile, pthread blob
+    │   ├── metrics.ts         # computeMetrics, ported from web-ai-run
+    │   ├── measure.ts         # compile + warmup + measure + readback + receipts
+    │   └── env.ts             # isolation, WebNN/WebGPU, adapter, browser channel
+    ├── home/                  # main.ts + home.css
+    ├── debug/                 # main.ts + debug.css
+    └── ui/tokens.css          # the ONLY source of colour, space, type, radius
 ```
+
+**M1 still to add:** `runner/litert.worker.ts` (wrapping `measure.ts`, one worker per
+backend), `runner/scheduler.ts` (the measurement token), `demos/` with the per-demo
+stage implementations, and the locked `receipt-badge` / `metric-row` components.
+
+Note there is no `public/wasm/` — wasm comes from jsDelivr at runtime, keyed by
+`&litertjs=`, so nothing is vendored.
+
+**Vercel compatibility verified**, not assumed:
+
+- Static only; no serverless functions, no SSR. `outputDirectory: dist`.
+- **MPA, not SPA.** `cleanUrls: true` maps `debug.html` → `/debug`, so every page is a
+  real prerendered document with its own title and meta. M1 generates per-demo entries
+  into the same input map from the registry, so home and detail pages cannot diverge.
+- The `import(/* @vite-ignore */ …)` of esm.sh **survives the production build** as a
+  runtime string (confirmed in `dist/assets/debug-*.js`), and `@litertjs/core` is
+  genuinely absent from the bundle — types-only worked.
+- Both isolation headers are set identically in `vercel.json` and `vite.config.ts`, so
+  dev and production agree. The debug page renders a visible banner when
+  `crossOriginIsolated` is false, rather than silently publishing a single-threaded CPU
+  baseline as if it were threaded.
 
 ### Chrome vs stage — the element-identity rule
 

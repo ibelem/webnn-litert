@@ -1,0 +1,175 @@
+/*
+ * Debug harness styling. This page is deliberately a table of facts, not a
+ * demo — it is the one place in the site where numbers are the content. Demo
+ * pages are visual-first with two metrics; see CLAUDE.md.
+ *
+ * Every value here comes from tokens.css. stylelint rejects raw hex and raw px
+ * in this file.
+ */
+
+.wrap {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+}
+
+.lede {
+  color: var(--color-fg-muted);
+  max-width: 48rem;
+}
+
+fieldset {
+  border: var(--border-hairline) solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+  margin: 0 0 var(--space-3);
+}
+
+legend {
+  font-size: var(--text-xs);
+  color: var(--color-fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+label {
+  font-size: var(--text-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-right: var(--space-4);
+}
+
+input,
+select,
+button {
+  font: inherit;
+  font-size: var(--text-sm);
+}
+
+input[type='text'],
+input[type='number'],
+select {
+  background: var(--color-surface);
+  color: var(--color-fg);
+  border: var(--border-hairline) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+}
+
+input:invalid {
+  border-color: var(--delegation-failed);
+}
+
+.run {
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+  border: 0;
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-5);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.run[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.status {
+  font-size: var(--text-sm);
+  color: var(--color-fg-muted);
+  margin-left: var(--space-3);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--space-5);
+  font-size: var(--text-sm);
+}
+
+th {
+  text-align: left;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-fg-muted);
+  font-weight: var(--weight-medium);
+  border-bottom: var(--border-hairline) solid var(--color-border);
+  padding: var(--space-2);
+}
+
+td {
+  padding: var(--space-2);
+  border-bottom: var(--border-hairline) solid var(--color-border);
+  vertical-align: top;
+}
+
+/* Backend identity = hue. Separate channel from delegation status. */
+tr[data-backend='wasm'] { background: var(--backend-wasm-tint); }
+tr[data-backend='webgpu'] { background: var(--backend-webgpu-tint); }
+tr[data-backend='webnn-gpu'] { background: var(--backend-webnn-gpu-tint); }
+tr[data-backend='webnn-npu'] { background: var(--backend-webnn-npu-tint); }
+
+.chip {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  border: var(--border-hairline) solid currentcolor;
+  white-space: nowrap;
+}
+
+tr[data-backend='wasm'] .chip { color: var(--backend-wasm); }
+tr[data-backend='webgpu'] .chip { color: var(--backend-webgpu); }
+tr[data-backend='webnn-gpu'] .chip { color: var(--backend-webnn-gpu); }
+tr[data-backend='webnn-npu'] .chip { color: var(--backend-webnn-npu); }
+
+/* Delegation = a reserved channel. 'full' is deliberately unmarked, because
+   partial is the expected outcome and marking success would make the site look
+   broken by default. Text always carries the meaning, never colour alone. */
+.deleg-full { color: var(--delegation-full); }
+
+.deleg-partial {
+  color: var(--delegation-partial);
+  font-weight: var(--weight-medium);
+}
+
+.deleg-failed {
+  color: var(--delegation-failed);
+  font-weight: var(--weight-medium);
+}
+
+/* Latency from a non-full delegation is not a WebNN number. Shown, but never
+   as a headline. */
+.suppressed {
+  color: var(--color-fg-faint);
+  font-style: italic;
+}
+
+.panel {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  background: var(--color-bg-subtle);
+  border: var(--border-hairline) solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  white-space: pre-wrap;
+  margin-top: var(--space-5);
+  max-height: 20rem;
+  overflow: auto;
+}
+
+h2 {
+  margin-top: var(--space-6);
+}
+
+.warn-banner {
+  border: var(--border-hairline) solid var(--delegation-partial);
+  background: var(--delegation-partial-tint);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  margin-top: var(--space-3);
+}

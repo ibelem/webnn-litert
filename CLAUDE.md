@@ -34,6 +34,29 @@ The side-by-side compare view is **three live outputs next to each other**, each
 small latency figure and badge underneath — not three rows in a table. Same input, three
 pictures, three numbers. That is the screenshot that makes the WebNN case.
 
+## Commands
+
+```bash
+npm run dev         # vite --host, isolation headers set
+npm run build       # tsc --noEmit && stylelint && vite build  -> dist/
+npm run preview     # serve dist/ with the same headers
+npm run typecheck
+npm run lint:css
+```
+
+`npm run build` is the gate: typecheck and stylelint both run before Vite, so a raw hex
+or a type error fails the build rather than reaching production.
+
+**Pages** are Vite MPA entries in `vite.config.ts`, not client-side routes. `index.html`
+is the registry-generated home page; `debug.html` is the delegation-truth harness, served
+at `/debug` by Vercel's `cleanUrls`. Adding a demo page in M1 means adding an entry to
+that input map, generated from the registry.
+
+**`/debug` is the one page where numbers are the content** — arbitrary model x
+`&litertjs=` version x backend, showing raw delegation truth. It's what you attach to a
+LiteRT bug report and what a version sweep drives. Demo pages share the same
+`src/runner/` but present it visually with exactly two metrics.
+
 ## Stack
 
 **TypeScript + Vite. No UI framework.** Not React, not Next, not Svelte, not Lit — all

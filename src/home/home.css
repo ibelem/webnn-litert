@@ -1,0 +1,64 @@
+/* Home page. Registry-generated, so it cannot diverge from the detail pages. */
+
+.wrap {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: var(--space-7) var(--space-4);
+}
+
+.lede {
+  color: var(--color-fg-muted);
+  max-width: 44rem;
+}
+
+.lede.small {
+  font-size: var(--text-sm);
+  margin-top: var(--space-7);
+}
+
+a {
+  color: var(--color-accent);
+}
+
+.demo-grid {
+  list-style: none;
+  margin: var(--space-6) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+}
+
+.demo-card {
+  border: var(--border-hairline) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  background: var(--color-surface);
+}
+
+.demo-card h2 {
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-1);
+}
+
+.demo-card p {
+  font-size: var(--text-sm);
+  color: var(--color-fg-muted);
+  margin: 0;
+}
+
+/* Pending demos are visibly not-yet-built rather than hidden, so the home page
+   stays honest about what works. */
+.demo-card[data-pending='true'] {
+  border-style: dashed;
+  color: var(--color-fg-faint);
+}
+
+.pending-tag {
+  display: inline-block;
+  margin-top: var(--space-2);
+  font-size: var(--text-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-fg-faint);
+}

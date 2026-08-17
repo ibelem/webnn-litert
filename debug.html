@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delegation truth harness</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/src/ui/tokens.css">
+<link rel="stylesheet" href="/src/debug/debug.css">
+</head>
+<body>
+<main class="wrap">
+  <h1>Delegation truth harness</h1>
+  <p class="lede">
+    Answers one question: for a given <code>.tflite</code> model, LiteRT.js version and
+    backend, does the model <em>actually</em> run where it claims? This is the one page on
+    the site where numbers are the content. Demo pages are visual-first.
+  </p>
+
+  <fieldset>
+    <legend>Runtime</legend>
+    <label>LiteRT.js version
+      <input type="text" id="version" size="10" pattern="\d+\.\d+\.\d+(-[a-z0-9.]+)?">
+    </label>
+    <label>iterations
+      <input type="number" id="iters" value="20" min="1" max="200">
+    </label>
+    <label>warmup
+      <input type="number" id="warmup" value="3" min="0" max="20">
+    </label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Model</legend>
+    <select id="model"></select>
+  </fieldset>
+
+  <fieldset>
+    <legend>Backends — measured one at a time, never concurrently</legend>
+    <span id="backend-boxes"></span>
+  </fieldset>
+
+  <button class="run" id="run">Run</button>
+  <span class="status" id="status"></span>
+
+  <div id="isolation-warning" hidden class="warn-banner"></div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Backend</th>
+        <th>Delegation</th>
+        <th>load+compile</th>
+        <th>first inf.</th>
+        <th>median</th>
+        <th>p90</th>
+      </tr>
+    </thead>
+    <tbody id="results"></tbody>
+  </table>
+
+  <h2>Environment</h2>
+  <div class="panel" id="env">reading…</div>
+
+  <h2>Captured LiteRT console output</h2>
+  <p class="lede" style="font-size: var(--text-sm)">
+    Partial delegation is reported <strong>nowhere else</strong>. This panel is half the
+    evidence the site rests on.
+  </p>
+  <div class="panel" id="log">(nothing yet)</div>
+</main>
+<script type="module" src="/src/debug/main.ts"></script>
+</body>
+</html>
