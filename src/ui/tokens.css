@@ -1,0 +1,296 @@
+/*
+ * tokens.css — the ONLY source of color, spacing, type and radius.
+ *
+ * Identity inherited from webnn.io / ibelem/webnn-docs so this site reads as
+ * part of the WebNN family. Token ARCHITECTURE deliberately differs: dark mode
+ * swaps token VALUES here, it never overrides component selectors. If you find
+ * yourself writing `.dark .something { color: ... }`, add a token instead.
+ *
+ * Enforced by stylelint: no raw hex, no raw px outside this file.
+ * See DESIGN.md.
+ */
+
+/* ---------------------------------------------------------------------------
+ * Fonts. woff2 files live in public/fonts/, copied from ibelem/webnn-docs
+ * (app/fonts/). All three are OFL-licensed and safe to self-host.
+ * ------------------------------------------------------------------------ */
+
+@font-face {
+  font-family: 'Instrument Sans';
+  src: url('/fonts/instrument-sans/instrument-sans-v1-latin-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/geist/geist-v1-latin-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/geist/geist-v1-latin-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Intel One Mono';
+  src: url('/fonts/intel-one-mono/IntelOneMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---------------------------------------------------------------------------
+ * Layer 1 — raw palette. Never referenced by components. Only Layer 2 reads these.
+ * ------------------------------------------------------------------------ */
+
+:root {
+  /* WebNN family primaries */
+  --wn-navy: rgb(3 4 94);              /* webnn.io light primary */
+  --wn-cyan: hsl(193 100% 50%);        /* webnn.io dark primary  */
+
+  /* Accent ramp, from webnn.io */
+  --wn-pink: #f72684;
+  --wn-purple: #7209b7;
+  --wn-indigo: #3a0ca3;
+  --wn-blue: #4361ee;
+  --wn-sky: #4cc9f0;
+  --wn-orange: #eb6424;
+
+  /* Neutrals */
+  --gray-000: #ffffff;
+  --gray-050: #fafafa;
+  --gray-100: #efefef;
+  --gray-200: #e5e7eb;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-700: #3f3f46;
+  --gray-800: #262626;
+  --gray-850: #1a1818;
+  --gray-900: #121212;
+  --gray-950: #0a0a0a;
+}
+
+/* ---------------------------------------------------------------------------
+ * Layer 2 — semantic roles. THIS is what components use. Light values here;
+ * dark values swapped below. Add a role rather than reaching into Layer 1.
+ * ------------------------------------------------------------------------ */
+
+:root {
+  --color-bg: var(--gray-000);
+  --color-bg-subtle: var(--gray-050);
+  --color-surface: var(--gray-000);
+  --color-surface-raised: var(--gray-050);
+
+  --color-fg: var(--gray-900);
+  --color-fg-muted: var(--gray-500);
+  --color-fg-faint: var(--gray-400);
+
+  --color-border: var(--gray-200);
+  --color-border-strong: var(--gray-400);
+
+  --color-accent: var(--wn-navy);
+  --color-accent-fg: var(--gray-000);
+
+  --color-focus: var(--wn-blue);
+
+  /* Backend identity — HUE channel. Distinct from delegation status below.
+   * wasm is deliberately neutral: it is a baseline, it should recede. */
+  --backend-wasm: var(--gray-500);
+  --backend-webgpu: var(--wn-blue);
+  --backend-webnn-gpu: var(--wn-sky);
+  --backend-webnn-npu: var(--wn-purple);
+
+  /* Per-backend tints, the --*-005 pattern from webnn-docs. */
+  --backend-wasm-tint: rgb(107 114 128 / 6%);
+  --backend-webgpu-tint: rgb(67 97 238 / 6%);
+  --backend-webnn-gpu-tint: rgb(76 201 240 / 8%);
+  --backend-webnn-npu-tint: rgb(114 9 183 / 6%);
+
+  /* Delegation status — SEPARATE channel from backend hue, so a reader can
+   * tell "this is the NPU card" apart from "this ran where it claimed".
+   * Reserved hues: orange + pink are used by NO backend, so no collision.
+   * Note `full` has no color of its own — it is the quiet, unmarked state. */
+  --delegation-full: var(--color-fg-muted);
+  --delegation-partial: var(--wn-orange);
+  --delegation-partial-tint: rgb(235 100 36 / 8%);
+  --delegation-failed: var(--wn-pink);
+  --delegation-failed-tint: rgb(247 38 132 / 8%);
+
+  /* Type */
+  --font-heading: 'Instrument Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-body: 'Geist', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-mono: 'Intel One Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --text-2xs: 0.6875rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2.25rem;
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.55;
+
+  --weight-body: 400;
+  --weight-medium: 600;
+  --weight-heading: 700;
+
+  /* Space — 4px base */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+
+  /* Radius — 5px echoes webnn.io; pill for CTAs */
+  --radius-sm: 0.25rem;
+  --radius: 0.3125rem;
+  --radius-lg: 0.625rem;
+  --radius-pill: 5rem;
+
+  /* Borders */
+  --border-hairline: 1px;
+}
+
+/* Dark: system preference, unless explicitly opted into light. */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --color-bg: var(--gray-950);
+    --color-bg-subtle: var(--gray-900);
+    --color-surface: var(--gray-900);
+    --color-surface-raised: var(--gray-850);
+
+    --color-fg: var(--gray-050);
+    --color-fg-muted: var(--gray-400);
+    --color-fg-faint: var(--gray-500);
+
+    --color-border: var(--gray-800);
+    --color-border-strong: var(--gray-700);
+
+    /* The navy→cyan flip is webnn.io's signature move. */
+    --color-accent: var(--wn-cyan);
+    --color-accent-fg: var(--gray-950);
+
+    --backend-webnn-gpu: var(--wn-cyan);
+    --backend-webnn-npu: #a855f7;   /* --wn-purple is too dark on near-black */
+
+    --backend-wasm-tint: rgb(156 163 175 / 8%);
+    --backend-webgpu-tint: rgb(67 97 238 / 14%);
+    --backend-webnn-gpu-tint: rgb(0 191 255 / 10%);
+    --backend-webnn-npu-tint: rgb(168 85 247 / 12%);
+
+    --delegation-partial: #f97e3c;
+    --delegation-partial-tint: rgb(249 126 60 / 12%);
+    --delegation-failed: #ff5c9d;
+    --delegation-failed-tint: rgb(255 92 157 / 12%);
+  }
+}
+
+/* Explicit toggle wins in both directions. */
+:root.dark {
+  --color-bg: var(--gray-950);
+  --color-bg-subtle: var(--gray-900);
+  --color-surface: var(--gray-900);
+  --color-surface-raised: var(--gray-850);
+
+  --color-fg: var(--gray-050);
+  --color-fg-muted: var(--gray-400);
+  --color-fg-faint: var(--gray-500);
+
+  --color-border: var(--gray-800);
+  --color-border-strong: var(--gray-700);
+
+  --color-accent: var(--wn-cyan);
+  --color-accent-fg: var(--gray-950);
+
+  --backend-webnn-gpu: var(--wn-cyan);
+  --backend-webnn-npu: #a855f7;
+
+  --backend-wasm-tint: rgb(156 163 175 / 8%);
+  --backend-webgpu-tint: rgb(67 97 238 / 14%);
+  --backend-webnn-gpu-tint: rgb(0 191 255 / 10%);
+  --backend-webnn-npu-tint: rgb(168 85 247 / 12%);
+
+  --delegation-partial: #f97e3c;
+  --delegation-partial-tint: rgb(249 126 60 / 12%);
+  --delegation-failed: #ff5c9d;
+  --delegation-failed-tint: rgb(255 92 157 / 12%);
+}
+
+/* ---------------------------------------------------------------------------
+ * Base element styling. Everything else lives in component files.
+ * ------------------------------------------------------------------------ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--weight-body);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: var(--weight-heading);
+  line-height: var(--leading-tight);
+}
+
+h1 { font-size: var(--text-2xl); }
+h2 { font-size: var(--text-xl); }
+h3 { font-size: var(--text-lg); }
+
+code,
+kbd,
+samp,
+pre {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+/* Every measured number on this site. Tabular figures stop digits from
+ * shifting as values update, which is otherwise very visible in a live
+ * compare grid. */
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+:where(a, button, input, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
