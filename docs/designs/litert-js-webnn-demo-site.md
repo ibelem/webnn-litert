@@ -589,3 +589,60 @@ five demo pages wrapped around a fallback path.
 - "Does every demo need canvas?" was the best question of the session. I had
   generalized from four segmentation demos and named the rule wrong; `mobilenetv2` has
   no canvas and still has the bug. The rule survived, its name didn't.
+
+## GSTACK REVIEW REPORT
+
+| Review | Trigger | Why | Runs | Status | Findings |
+|--------|---------|-----|------|--------|----------|
+| CEO Review | `/plan-ceo-review` | Scope & strategy | 0 | — | not run |
+| Codex Review | `/codex review` | Independent 2nd opinion | 0 | — | skipped (`codex_reviews` disabled per user) |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | CLEAR | 7 issues, all resolved; 3 TODOs, all built |
+| Design Review | `/plan-design-review` | UI/UX gaps | 0 | — | not run |
+| DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | not run |
+
+Scope reviewed: `src/runner/*`, `src/registry.ts`, `src/debug/*`, `debug.html`,
+`vite.config.ts`, `vercel.json`, `tsconfig.json` — the runner and debug harness built
+this session, at commit `be2a403`.
+
+**Findings (7), all resolved with user's chosen option, all shipped:**
+
+1. [P1] No timeout/cancellation on compile or inference (`measure.ts`) → AbortSignal +
+   per-phase timeout + Cancel button.
+2. [P1] Output readback dominates the metric for large outputs (`measure.ts`) →
+   `DemoEntry.maxCompareInput` cap + "time to usable output" labelling. **Field exists,
+   enforcement pending until a demo/compare view exists — carried as a critical gap into
+   M2, not closed.**
+3. [P1] Backend failures and programmer errors were indistinguishable (`measure.ts`) →
+   `isEnvironmentFailure` re-throws real bugs instead of mislabeling them as hardware
+   failures.
+4. [P2] `noImplicitReturns` not enabled (`tsconfig.json`) → enabled project-wide.
+5. [P2] iterations/warmup unvalidated (`debug/main.ts`) → clamped at the read site.
+6. [P2/Test] No test framework, zero coverage on `computeMetrics` → Vitest added, 24
+   tests (grew to 36 after the TODO builds).
+7. [P2/Perf] Threaded-mode blob URL never revoked (`loader.ts`) → tracked and revoked on
+   reload.
+
+**TODOs (3), all built now rather than deferred:** CDN fetch retry with backoff
+(`fetch-retry.ts`), streamed model-download progress (`progress-fetch.ts`), `.nvmrc`
+pinning Node 24 (still needs the matching Vercel dashboard setting — cannot be done from
+this session).
+
+**Bugs caught outside the formal review sections, while implementing fixes:** the Vercel
+production build failed on `@types/node`/`import.meta.dirname` that the local build
+didn't catch (fixed, verified via `rm -rf node_modules && npm ci`); `exactOptionalPropertyTypes`
+caught two real `{signal: undefined}` vs. omitted-key gaps against `fetch`'s
+`RequestInit` and the new `RetryOptions`; the review's own first p90 test had a
+miscalculated expectation, caught by running it rather than trusting the comment.
+
+**CODEX:** not run — `codex_reviews` set to `disabled` this session per explicit user
+request (Codex was authenticated-absent regardless: `codex login status` → "Not logged
+in").
+
+**VERDICT:** ENG CLEARED — 7/7 findings resolved, 3/3 TODOs built, 36 tests passing,
+verified against a clean `npm ci` + `npm run build`. CEO, Design and DX reviews not run
+(none requested; no design-system or product-scope questions surfaced this session that
+would warrant them). One flagged carry-forward: `maxCompareInput` enforcement is a
+placed-but-inert guardrail — M2 must wire it in before `real_esrgan` enters the compare
+view, not treat the field's existence as the protection already being real.
+
+NO UNRESOLVED DECISIONS
