@@ -8,8 +8,8 @@ Copy from [`ibelem/webnn-docs`](https://github.com/ibelem/webnn-docs) (`app/font
 these exact paths:
 
 ```
-public/fonts/instrument-sans-v1-latin/instrument-sans-v1-latin-v1-latin-700.woff2
-public/fonts/geist-v1-latin/geist-v1-latin-400.woff2
+public/fonts/instrument-sans-v1-latin/instrument-sans-v1-latin-700.woff2
+public/fonts/geist-v1-latin/geist-v1-latin-200.woff2
 public/fonts/geist-v1-latin/geist-v1-latin-600.woff2
 public/fonts/intel-one-mono/IntelOneMono-Regular.woff2
 ```
