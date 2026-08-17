@@ -114,6 +114,33 @@ latency as a headline number.
 
 Treat any change that weakens this as a bug. It is the project's reason to exist.
 
+## Where rendering happens
+
+**The worker owns drawing, via OffscreenCanvas.** Decided in M1, not deferred.
+
+`mountStage()` creates the `<canvas>` on the main thread, calls
+`transferControlToOffscreen()` **once**, and posts the `OffscreenCanvas` to that backend's
+worker. The worker then draws into it directly — no per-frame transfer, no `ImageBitmap`
+round trip, no main-thread work during inference.
+
+Consequences to respect:
+
+- **`transferControlToOffscreen()` can only be called once per canvas, ever.** After
+  transfer the main thread cannot draw to it or resize it via 2D context. This is the
+  hardest version of the element-identity rule below: the canvas is not just
+  "don't rebuild it", it's "rebuilding it permanently breaks that backend's stage".
+- **Demo code spans two realms.** `mountStage` runs on the main thread; `preprocess`,
+  `postprocess` and `render` run in the worker. Keep them in separate modules so the
+  worker never imports DOM-touching code.
+- **Webcam input**: prefer `MediaStreamTrackProcessor` inside the worker over posting
+  frames from the main thread — we're Chromium-only, so it's available, and it keeps the
+  frame path off the main thread entirely. Defer it past the first demo.
+
+**Keep `/debug` on the main thread as a control.** It already works and is proven. When a
+worker demo misbehaves, `/debug` isolates whether the fault is the worker layer or LiteRT
+itself — which matters because M1 stacks worker + OffscreenCanvas + JSPI + experimental
+WebNN, and a failure with no control tells you nothing about which layer broke.
+
 ## Chrome vs stage — the element-identity rule
 
 Two zones per demo page, with opposite properties:

@@ -513,12 +513,34 @@ integration; PR previews give every change a shareable URL. Models are served fr
 **M0 — Spike (kill/continue gate).** Run `model_tester` against real NPU hardware and
 record `isFullyAccelerated` per model. No site code. Answers Open Questions 1, 2 and 4.
 
-**M1 — Runner.** Vite + TypeScript skeleton, `vercel.json`, `tokens.css` + stylelint,
-per-backend worker + CDN runtime loader (`&litertjs=`, default 2.5.3, validated) +
-metrics + receipts + console mirror, `mobilenetv2` only (HF model and labels). One
-backend at a time. Deploy; confirm `crossOriginIsolated`, that the HF model fetch and the
-esm.sh/jsDelivr runtime fetches all survive COEP in production (Open Question 5), and
-that the threaded blob-URL workaround holds.
+**M1 — Runner. DONE in part.** Vite + TypeScript skeleton, `vercel.json`, `tokens.css` +
+stylelint, CDN runtime loader (`&litertjs=`, default 2.5.3, validated), metrics, receipts,
+console capture, and the `/debug` harness are all built, typechecked and pushed. Open
+Question 5 is partly answered: the HF model fetch and both CDN fetches work under the
+dev-server isolation headers; production still needs confirming.
+
+**M1 remainder — first visual demo, worker-hosted.** Per D2 the worker owns drawing via
+OffscreenCanvas, decided now rather than deferred:
+
+- `runner/litert.worker.ts` — module worker, one per backend, wrapping `measure.ts`.
+- `runner/scheduler.ts` — measurement token, so only one backend runs at a time even
+  though all stay compiled.
+- `mountStage()` on the main thread creates the canvas, calls
+  `transferControlToOffscreen()` **once**, posts it to that backend's worker. Worker draws
+  directly — no per-frame transfer.
+- Locked `receipt-badge` and `metric-row` components.
+
+**First demo should be `depth-anything`, not `mobilenetv2`.** Three reasons that align:
+its output is a canvas image, so it actually exercises OffscreenCanvas (mobilenetv2's
+output is a text label list, where OffscreenCanvas buys nothing); it is `wi8_afp32`, the
+int8 shape where the NPU should finally win after losing to WebNN GPU on fp32
+MobileNetV2; and it runs on a static image, so webcam plumbing stays out of the milestone
+that already stacks worker + OffscreenCanvas + JSPI + experimental WebNN. M1 therefore
+doubles as the depth-anything delegation spike.
+
+**Risk mitigation:** `/debug` stays main-thread as a known-good control. When a worker
+demo misbehaves it isolates worker-layer faults from LiteRT faults — necessary given how
+many experimental layers M1 now stacks.
 
 **M2 — Compare view.** `scheduler.ts` measurement token, side-by-side layout with one
 stage per backend, progressive reveal, multi-value `?backend=` parsing, opt-in `wasm`
