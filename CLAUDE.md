@@ -6,6 +6,34 @@ A demo site for **LiteRT.js** running `.tflite` models in the browser on **WebGP
 Design doc: [`docs/designs/litert-js-webnn-demo-site.md`](docs/designs/litert-js-webnn-demo-site.md) (APPROVED).
 Model URLs: [`docs/model.md`](docs/model.md).
 
+## This is a demo site, not a benchmark
+
+Read this before designing any page. `web-ai-run` is the benchmark tool and already exists
+— **do not rebuild it here.**
+
+The hero of every page is the **visual output**: segmentation over a webcam, a depth map,
+an upscaled image, a classification result. Big, immediate, working. A visitor should see
+something impressive within seconds and understand what WebNN does without reading a
+number.
+
+Metrics are **receipts** — small, secondary, present so the visual claim is trustworthy.
+They are not the content.
+
+Concretely, this means **no**:
+
+- Tables of p90 / best / average / throughput. That's a benchmark report.
+- Iteration-count and warmup-count inputs. Visitors don't configure a benchmark.
+- A "Run" button as the primary interaction. Demos run on load, or run continuously.
+- Dense numeric grids as the page's main visual weight.
+
+And **yes** to: live output, continuous webcam where the model suits it, one legible
+latency figure, the delegation badge, and a load state that is honest about WebNN's
+~2 second compile rather than looking broken during it.
+
+The side-by-side compare view is **three live outputs next to each other**, each with a
+small latency figure and badge underneath — not three rows in a table. Same input, three
+pictures, three numbers. That is the screenshot that makes the WebNN case.
+
 ## Stack
 
 **TypeScript + Vite. No UI framework.** Not React, not Next, not Svelte, not Lit — all
@@ -177,11 +205,48 @@ change.
 
 ## Metrics
 
-Schema ported from [`ibelem/web-ai-run`](https://github.com/ibelem/web-ai-run)'s
-`computeMetrics` — do not redesign it: `load_and_compile_ms`, `first_inference_ms`,
-`time_to_first_ms`, `average_ms`, `median_ms`, `best_ms`, `p90_ms`, `throughput_fps`,
-plus raw `inference_times[]`. Warmup runs are timed and logged but **excluded from
-statistics**; the first run is special-cased as `first_inference_ms`.
+### Compute the full schema, display almost none of it
+
+**Compute** (ported from [`ibelem/web-ai-run`](https://github.com/ibelem/web-ai-run)'s
+`computeMetrics`, don't redesign): `load_and_compile_ms`, `first_inference_ms`,
+`time_to_first_ms`, `average_ms`, `median_ms`, `best_ms`, `p90_ms`, `throughput_fps`, raw
+`inference_times[]`. Warmup runs timed but **excluded from statistics**; first run
+special-cased as `first_inference_ms`. Keep all of it — it costs nothing, it goes to the
+devtools console, and it's there if a future export or a LiteRT bug report needs it.
+
+**Display** only these, because this is a demo site:
+
+| Shown | Where |
+|---|---|
+| Current / rolling inference latency | Under the output, one figure |
+| FPS | Only on continuous (webcam) demos, where it's meaningful |
+| Load + compile, once | In the load state, then it stops being interesting |
+| Delegation badge | Always, next to the latency |
+
+`p90`, `best`, `average`, `throughput_fps` as a labelled statistic — **do not render
+these.** They're benchmark furniture and they turn a demo into a report.
+
+### What is inside the measured region
+
+Decided, applied identically to **all four backends**, and not to be changed casually:
+
+**input upload → `run()` → output readback.** Both ends included.
+
+- **The readback is mandatory.** WebGPU submits asynchronously — `run()` resolves once
+  commands are enqueued, not once they have executed. Without `await tensor.data()` the
+  timer measures submission and produces impossible numbers: the first spike run reported
+  **0.2 ms / 3055 fps** for MobileNetV2 on WebGPU. WebNN under JSPI appears to be
+  genuinely synchronous through `run()`, but the readback is applied to every backend
+  anyway, because uniformity is what makes the numbers comparable.
+- **Upload is included** because a webcam demo really does upload a fresh frame per
+  inference. It is part of what the user waits for.
+- The metric is therefore **time to usable output**, not kernel time. Say so in the UI.
+- Note this differs from web-ai-run, which excludes upload and reads back only on
+  WebGPU — so do not compare numbers between the two projects.
+
+`load_and_compile_ms` is measured separately and matters more than expected: WebNN graph
+building took **~2000 ms** vs WebGPU's ~35 ms for MobileNetV2. Show `time_to_first_ms`
+prominently; for short-lived demo visits it dominates the experience.
 
 ## Design system
 

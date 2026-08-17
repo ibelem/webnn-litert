@@ -335,13 +335,47 @@ side-by-side layout. The UI states "measured sequentially" so the presentation n
 over-claims. An optional `?mode=race` runs concurrently for effect and marks all timings
 non-comparable.
 
-### Metrics schema
+### Demo site, not a benchmark
 
-Ported from web-ai-run's `computeMetrics`: `load_and_compile_ms`, `first_inference_ms`,
-`time_to_first_ms` (= load_and_compile + first_inference), `average_ms`, `median_ms`,
-`best_ms`, `p90_ms`, `throughput_fps` (= 1000/average), plus raw `inference_times[]`.
-Warmup runs are timed and logged but excluded from statistics; the first run is
-special-cased as `first_inference_ms`.
+Load-bearing framing, restated because the architecture above can easily be built into
+the wrong product. `web-ai-run` is the benchmark tool and already exists; this is not it.
+
+The hero of every page is the **visual output** — segmentation over a webcam, a depth map,
+an upscaled image. Metrics are receipts: small, secondary, present so the visual claim is
+trustworthy. Not the content.
+
+No p90/best/average tables, no iteration and warmup inputs, no "Run" button as the primary
+interaction, no dense numeric grid carrying the page's visual weight. The compare view is
+**three live outputs side by side**, each with one latency figure and a badge underneath —
+not three rows of a table. Same input, three pictures, three numbers.
+
+### Metrics: compute all, display little
+
+**Compute** (ported from web-ai-run's `computeMetrics`): `load_and_compile_ms`,
+`first_inference_ms`, `time_to_first_ms`, `average_ms`, `median_ms`, `best_ms`, `p90_ms`,
+`throughput_fps`, raw `inference_times[]`. Warmup timed but excluded from statistics.
+Costs nothing, goes to the console, available for a future export or a LiteRT bug report.
+
+**Display**: current/rolling latency under the output; FPS only on continuous demos;
+load+compile once during the load state; the delegation badge always. `p90`, `best`,
+`average` and `throughput_fps` as labelled statistics are benchmark furniture — computed,
+never rendered.
+
+### What is inside the measured region
+
+One choice, applied identically to all four backends: **input upload → `run()` → output
+readback.**
+
+The readback is mandatory. WebGPU submits asynchronously, so `run()` resolves once
+commands are enqueued rather than executed — the first M0 run reported **0.2 ms /
+3055 fps** for MobileNetV2 on WebGPU before this was fixed. WebNN under JSPI appears
+genuinely synchronous through `run()`, but the readback applies everywhere anyway, because
+uniformity is what makes the figures comparable. Upload is included because a webcam demo
+really does upload a fresh frame per inference.
+
+The metric is therefore **time to usable output**, not kernel time. Differs from
+web-ai-run (which excludes upload and reads back only on WebGPU), so numbers are not
+comparable between the two projects.
 
 ### Design system
 
