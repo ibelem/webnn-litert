@@ -20,6 +20,18 @@ export interface DemoEntry {
   backends: readonly Backend[];
   /** False until the demo's visual stage exists. Home page shows it as pending. */
   implemented: boolean;
+  /**
+   * Caps input resolution when this demo runs in the side-by-side compare
+   * view with multiple backends live at once. `undefined` means no cap.
+   *
+   * Exists because the output readback (see runner/measure.ts) is timed
+   * deliberately, and its cost scales with output size: real-esrgan at 4x
+   * turns a 512px input into a 2048x2048 output per backend — ~16MB of
+   * readback each, ~64MB across four backends, on top of four resident
+   * compiled models. Uncapped, that is a plausible tab crash on a mid-range
+   * laptop, not just a slow number.
+   */
+  maxCompareInput?: {width: number; height: number};
 }
 
 export const DEMOS: readonly DemoEntry[] = [
@@ -73,6 +85,8 @@ export const DEMOS: readonly DemoEntry[] = [
     },
     backends: BACKENDS,
     implemented: false,
+    // 4x of this is already 1024x1024 per backend — see the field doc above.
+    maxCompareInput: {width: 256, height: 256},
   },
 ];
 

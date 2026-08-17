@@ -15,6 +15,7 @@
     "noUnusedParameters": true,
     "noUncheckedIndexedAccess": true,
     "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
     "exactOptionalPropertyTypes": true,
 
     "noEmit": true,

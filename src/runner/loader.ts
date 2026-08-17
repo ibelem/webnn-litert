@@ -45,11 +45,30 @@ interface EmscriptenOverrides {
 
 let loaded: {mod: LiteRt; version: string; mode: LoadMode} | null = null;
 
+/** The most recently created pthread-host blob URL, so it can be revoked
+ *  before the next one is created. Without this, each reload into 'threaded'
+ *  mode leaks one blob for the tab's lifetime — invisible on a demo page that
+ *  loads once, but real on /debug, which reloads repeatedly during a version
+ *  sweep. */
+let lastThreadedBlobUrl: string | null = null;
+
+function revokeLastThreadedBlobUrl(): void {
+  if (lastThreadedBlobUrl) {
+    URL.revokeObjectURL(lastThreadedBlobUrl);
+    lastThreadedBlobUrl = null;
+  }
+}
+
 /**
  * Idempotent per (version, mode). Changing either requires unloadLiteRt(),
  * which is why a single realm cannot host two modes at once.
+ *
+ * `signal` bounds both the compile-adjacent CDN fetches and the load call
+ * itself — a hung driver or a dead CDN must not leave the caller waiting
+ * forever with no way to cancel.
  */
-export async function ensureLiteRt(version: string, mode: LoadMode): Promise<LiteRt> {
+export async function ensureLiteRt(
+    version: string, mode: LoadMode, signal?: AbortSignal): Promise<LiteRt> {
   if (!isValidVersion(version)) {
     throw new Error(`Refusing to load "${version}" — must be strict semver (x.y.z).`);
   }
@@ -71,7 +90,16 @@ export async function ensureLiteRt(version: string, mode: LoadMode): Promise<Lit
   }
 
   const root = wasmRoot(version);
-  const mod = await import(/* @vite-ignore */ moduleUrl(version)) as LiteRt;
+
+  let mod: LiteRt;
+  try {
+    mod = await import(/* @vite-ignore */ moduleUrl(version)) as LiteRt;
+  } catch (e) {
+    // A CDN outage or network failure is an environment fault, not a bug in
+    // this code — surface it as one rather than letting an opaque import()
+    // rejection propagate.
+    throw new Error(`Failed to load @litertjs/core@${version} from esm.sh: ${errorMessage(e)}`);
+  }
 
   // Older published builds lack exports. Probe, don't assume.
   if (typeof mod.loadLiteRt !== 'function') {
@@ -85,17 +113,20 @@ export async function ensureLiteRt(version: string, mode: LoadMode): Promise<Lit
   if (mode === 'threaded') {
     // A cross-origin script cannot be a pthread host under COEP, so re-host it
     // same-origin as a blob. This is what makes threaded WASM work off a CDN.
-    const res = await fetch(`${root}/litert_wasm_threaded_internal.js`);
+    const res = await fetch(
+        `${root}/litert_wasm_threaded_internal.js`, signal ? {signal} : {});
     if (!res.ok) throw new Error(`pthread host fetch ${res.status} from ${root}`);
     const source = await res.text();
-    overrides.mainScriptUrlOrBlob =
-        URL.createObjectURL(new Blob([source], {type: 'application/javascript'}));
+    revokeLastThreadedBlobUrl();
+    const url = URL.createObjectURL(new Blob([source], {type: 'application/javascript'}));
+    overrides.mainScriptUrlOrBlob = url;
+    lastThreadedBlobUrl = url;
   }
 
   (globalThis as {Module?: EmscriptenOverrides}).Module = overrides;
   try {
     const opts = mode === 'jspi' ? {jspi: true} : {threads: mode === 'threaded'};
-    await mod.loadLiteRt(root, opts);
+    await withTimeout(mod.loadLiteRt(root, opts), signal, 'loadLiteRt');
   } catch (e) {
     // Reloading an already-loaded runtime is not an error for our purposes.
     if (!/already load/i.test(errorMessage(e))) throw e;
@@ -105,6 +136,25 @@ export async function ensureLiteRt(version: string, mode: LoadMode): Promise<Lit
 
   loaded = {mod, version, mode};
   return mod;
+}
+
+/**
+ * Rejects with a named AbortError if `signal` fires before `promise` settles.
+ * A driver hang during compile must not leave the page stuck on "measuring…"
+ * forever with no way out.
+ */
+export function withTimeout<T>(
+    promise: Promise<T>, signal: AbortSignal | undefined, label: string): Promise<T> {
+  if (!signal) return promise;
+  if (signal.aborted) return Promise.reject(new DOMException(`${label} aborted`, 'AbortError'));
+
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(new DOMException(`${label} aborted`, 'AbortError'));
+    signal.addEventListener('abort', onAbort, {once: true});
+    promise
+        .then(resolve, reject)
+        .finally(() => signal.removeEventListener('abort', onAbort));
+  });
 }
 
 export function errorMessage(e: unknown): string {

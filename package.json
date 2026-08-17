@@ -9,10 +9,11 @@
   },
   "scripts": {
     "dev": "vite --host",
-    "build": "npm run typecheck && npm run lint:css && vite build",
+    "build": "npm run typecheck && npm run lint:css && npm test -- --run && vite build",
     "preview": "vite preview --host",
     "typecheck": "tsc --noEmit",
-    "lint:css": "stylelint \"src/**/*.css\""
+    "lint:css": "stylelint \"src/**/*.css\"",
+    "test": "vitest"
   },
   "devDependencies": {
     "@litertjs/core": "^2.5.3",
@@ -20,6 +21,7 @@
     "@webgpu/types": "^0.1.71",
     "stylelint": "^17.14.1",
     "typescript": "^7.0.2",
-    "vite": "^8.2.1"
+    "vite": "^8.2.1",
+    "vitest": "^4.1.10"
   }
 }

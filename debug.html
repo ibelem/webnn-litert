@@ -41,9 +41,16 @@
   </fieldset>
 
   <button class="run" id="run">Run</button>
+  <button class="run" id="cancel" hidden>Cancel</button>
   <span class="status" id="status"></span>
 
   <div id="isolation-warning" hidden class="warn-banner"></div>
+
+  <p class="lede" style="font-size: var(--text-sm)">
+    Every timing below is <strong>time to usable output</strong> — input handoff through
+    the awaited output readback, not raw kernel time. For large-output demos (e.g. 4x
+    upscaling) the readback can dominate the number; see <code>measure.ts</code>.
+  </p>
 
   <table>
     <thead>

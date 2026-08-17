@@ -24,6 +24,7 @@ const warmupInput = el<HTMLInputElement>('warmup');
 const modelSelect = el<HTMLSelectElement>('model');
 const backendBoxes = el<HTMLSpanElement>('backend-boxes');
 const runButton = el<HTMLButtonElement>('run');
+const cancelButton = el<HTMLButtonElement>('cancel');
 const statusEl = el<HTMLSpanElement>('status');
 const resultsEl = el<HTMLTableSectionElement>('results');
 const logEl = el<HTMLDivElement>('log');
@@ -159,12 +160,27 @@ function appendLog(backend: string, lines: readonly string[]): void {
 
 // ---------------------------------------------------------------- run
 
+/**
+ * Coerces a numeric input to a safe positive integer. `<input min="1">` is a
+ * UI hint the browser shows, not a guarantee — clearing the field reads back
+ * as `Number('') === 0`, which previously reached computeMetrics as a
+ * zero-length sample array and threw its guard three calls downstream. Clamp
+ * at the read site so a blank field means "use 1", not a confusing error.
+ */
+function clampPositiveInt(raw: string, fallback: number): number {
+  const n = Math.floor(Number(raw));
+  return Number.isFinite(n) && n >= 1 ? n : fallback;
+}
+
+let activeRun: AbortController | null = null;
+
 runButton.addEventListener('click', () => void run());
+cancelButton.addEventListener('click', () => activeRun?.abort());
 
 async function run(): Promise<void> {
   const version = versionInput.value.trim();
-  const iterations = Number(itersInput.value);
-  const warmupRuns = Number(warmupInput.value);
+  const iterations = clampPositiveInt(itersInput.value, 1);
+  const warmupRuns = Math.max(0, Math.floor(Number(warmupInput.value)) || 0);
   const backends = backendCheckboxes().filter((b) => b.checked).map((b) => b.value as Backend);
   const demo = DEMOS.find((d) => d.slug === modelSelect.value);
 
@@ -184,10 +200,15 @@ async function run(): Promise<void> {
     return;
   }
 
+  const controller = new AbortController();
+  activeRun = controller;
+  const {signal} = controller;
+
   runButton.disabled = true;
+  cancelButton.hidden = false;
   try {
     statusEl.textContent = 'fetching model…';
-    const res = await fetch(demo.model.url);
+    const res = await fetch(demo.model.url, {signal});
     if (!res.ok) throw new Error(`model fetch ${res.status} — ${demo.model.url}`);
     const modelBytes = new Uint8Array(await res.arrayBuffer());
 
@@ -196,7 +217,7 @@ async function run(): Promise<void> {
     for (const backend of backends) {
       statusEl.textContent = `measuring ${backend}…`;
       const record = await measureBackend(
-          backend, version, modelBytes, iterations, warmupRuns);
+          backend, version, modelBytes, iterations, warmupRuns, {signal});
       renderRow(record);
       appendLog(backend, record.warnings);
       if (record.error) appendLog(backend, [`[error] ${record.error}`]);
@@ -206,10 +227,20 @@ async function run(): Promise<void> {
     }
     statusEl.textContent = `done — ${demo.title} on @litertjs/core@${version}`;
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    statusEl.textContent = `failed: ${message}`;
-    appendLog('harness', [`[error] ${message}`]);
+    // A programmer error (bad argument, null dereference, out-of-range index)
+    // is a real bug and must not be swallowed as "the harness failed" — that
+    // hides exactly the kind of silent failure this project exists to expose.
+    // measureBackend already re-throws these; propagate rather than catch.
+    if (e instanceof TypeError || e instanceof ReferenceError || e instanceof RangeError) {
+      throw e;
+    }
+    const message = signal.aborted ? 'cancelled' :
+        e instanceof Error ? e.message : String(e);
+    statusEl.textContent = signal.aborted ? 'cancelled' : `failed: ${message}`;
+    if (!signal.aborted) appendLog('harness', [`[error] ${message}`]);
   } finally {
     runButton.disabled = false;
+    cancelButton.hidden = true;
+    activeRun = null;
   }
 }

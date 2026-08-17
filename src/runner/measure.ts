@@ -1,6 +1,6 @@
 import type {CompiledModel, TensorDetails} from '@litertjs/core';
 
-import {ensureLiteRt, errorMessage, type LiteRt, type LoadMode} from './loader';
+import {ensureLiteRt, errorMessage, withTimeout, type LiteRt, type LoadMode} from './loader';
 import {computeMetrics} from './metrics';
 import type {Backend, Delegation, RunRecord} from './types';
 
@@ -63,13 +63,22 @@ async function withConsoleCapture<T>(fn: () => Promise<T>):
   }
 }
 
+/**
+ * Extracted as its own pure function so the "unhandled dtype" guard is
+ * testable without a real LiteRT module — see measure.test.ts.
+ * Fail loudly: defaulting to Float32Array would allocate the wrong byte
+ * length for a narrower dtype and surface far from the cause.
+ */
+export function typedArrayCtorFor(d: Pick<TensorDetails, 'dtype' | 'name'>) {
+  const Ctor = DTYPE_CTOR[d.dtype];
+  if (!Ctor) throw new Error(`Unhandled input dtype "${d.dtype}" on "${d.name}"`);
+  return Ctor;
+}
+
 function makeZeroInputs(mod: LiteRt, details: readonly TensorDetails[]) {
   const inputs: Record<string, InstanceType<typeof mod.Tensor>> = {};
   for (const d of details) {
-    const Ctor = DTYPE_CTOR[d.dtype];
-    // Fail loudly. Defaulting to Float32Array would allocate the wrong byte
-    // length for a narrower dtype and surface far from the cause.
-    if (!Ctor) throw new Error(`Unhandled input dtype "${d.dtype}" on "${d.name}"`);
+    const Ctor = typedArrayCtorFor(d);
     const shape = Array.from(d.shape);
     const count = shape.reduce((a, b) => a * b, 1);
     inputs[d.name] = new mod.Tensor(new Ctor(count), shape);
@@ -83,10 +92,38 @@ function describeInputs(details: readonly TensorDetails[]): string {
 }
 
 /**
+ * Errors we did not cause: a compile that legitimately can't run on this
+ * hardware/driver, a network failure, an aborted/timed-out run. These become
+ * `delegation: 'failed'` so the compare view survives one backend dying.
+ *
+ * Everything else (TypeError, ReferenceError, RangeError — programmer errors:
+ * a null dereference, a bad argument, an out-of-range index) is NOT caught
+ * here. It propagates as a real exception, because reporting a bug in our own
+ * code as "this backend did not run" asserts a hardware verdict we have not
+ * earned — the exact failure mode this project exists to prevent, pointed
+ * inward. See CLAUDE.md, "the one rule that matters".
+ */
+function isEnvironmentFailure(e: unknown): boolean {
+  return !(e instanceof TypeError || e instanceof ReferenceError || e instanceof RangeError);
+}
+
+export interface MeasureOptions {
+  /** Aborts the compile and, on the next check, the inference loop. A hung
+   *  driver or a dead CDN must not leave the caller waiting forever. */
+  signal?: AbortSignal;
+  /** Wall-clock budget for load+compile. WebNN graph building measured at
+   *  ~2000ms on real hardware; this should sit comfortably above that. */
+  compileTimeoutMs?: number;
+}
+
+const DEFAULT_COMPILE_TIMEOUT_MS = 30_000;
+
+/**
  * Runs one backend end to end and returns its full record.
  *
- * Never throws: a backend that cannot run is a result (`delegation: 'failed'`),
- * not an exception, because the compare view must still show the other three.
+ * Never throws for environment failures: a backend that cannot run for
+ * hardware/driver/network reasons is a result (`delegation: 'failed'`), not an
+ * exception. DOES throw for programmer errors — see isEnvironmentFailure.
  */
 export async function measureBackend(
     backend: Backend,
@@ -94,21 +131,35 @@ export async function measureBackend(
     modelBytes: Uint8Array,
     iterations: number,
     warmupRuns: number,
+    options: MeasureOptions = {},
 ): Promise<RunRecord> {
+  const {signal, compileTimeoutMs = DEFAULT_COMPILE_TIMEOUT_MS} = options;
   let compiled: CompiledModel | null = null;
 
   try {
-    const mod = await ensureLiteRt(litertVersion, loadModeFor(backend));
+    const mod = await ensureLiteRt(litertVersion, loadModeFor(backend), signal);
+
+    const compileController = new AbortController();
+    const compileTimer = setTimeout(() => compileController.abort(), compileTimeoutMs);
+    const combined = anySignal([signal, compileController.signal]);
 
     const started = performance.now();
-    const {value, warnings} = await withConsoleCapture(async () => {
-      if (backend === 'webgpu') {
-        const adapter = await navigator.gpu?.requestAdapter();
-        if (!adapter) throw new Error('no WebGPU adapter available');
-        mod.setWebGpuDevice(await adapter.requestDevice());
-      }
-      return mod.loadAndCompile(modelBytes, compileOptionsFor(backend));
-    });
+    let value: CompiledModel;
+    let warnings: string[];
+    try {
+      ({value, warnings} = await withConsoleCapture(async () => withTimeout(
+           (async () => {
+             if (backend === 'webgpu') {
+               const adapter = await navigator.gpu?.requestAdapter();
+               if (!adapter) throw new Error('no WebGPU adapter available');
+               mod.setWebGpuDevice(await adapter.requestDevice());
+             }
+             return mod.loadAndCompile(modelBytes, compileOptionsFor(backend));
+           })(),
+           combined, 'compile')));
+    } finally {
+      clearTimeout(compileTimer);
+    }
     const loadAndCompileMs = performance.now() - started;
 
     compiled = value;
@@ -120,6 +171,8 @@ export async function measureBackend(
     const samples: number[] = [];
 
     for (let i = 0; i < warmupRuns + iterations; i++) {
+      signal?.throwIfAborted();
+
       const t0 = performance.now();
       const out = await compiled.run(inputs);
 
@@ -130,7 +183,11 @@ export async function measureBackend(
       // demo also stops its timer only after awaiting .data().
       //
       // Applied to every backend, not just WebGPU, because uniformity is what
-      // makes the figures comparable. Metric is "time to usable output".
+      // makes the figures comparable. Metric is "time to usable output", not
+      // kernel time — and for a large-output demo (e.g. 4x upscaling) this
+      // readback can dominate the number. DemoDefinition.maxCompareInput
+      // (added when demos exist) caps input size in the side-by-side compare
+      // view for exactly that reason; see DESIGN.md.
       const outTensors = Array.isArray(out) ? out : Object.values(out);
       await Promise.all(outTensors.map((t) => t.data()));
 
@@ -152,6 +209,8 @@ export async function measureBackend(
       metrics: computeMetrics(samples, loadAndCompileMs, firstInferenceMs),
     };
   } catch (e) {
+    if (!isEnvironmentFailure(e)) throw e; // programmer error — do not mislabel as hardware
+
     return {
       backend,
       delegation: 'failed',
@@ -164,4 +223,20 @@ export async function measureBackend(
   } finally {
     compiled?.delete();
   }
+}
+
+/** AbortSignal.any() ponyfill — Chrome M153 has it natively, but keep this
+ *  dependency-free rather than assuming. Returns a signal that aborts when
+ *  any input signal aborts. */
+function anySignal(signals: Array<AbortSignal | undefined>): AbortSignal {
+  const controller = new AbortController();
+  for (const s of signals) {
+    if (!s) continue;
+    if (s.aborted) {
+      controller.abort(s.reason);
+      break;
+    }
+    s.addEventListener('abort', () => controller.abort(s.reason), {once: true});
+  }
+  return controller.signal;
 }
