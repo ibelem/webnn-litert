@@ -244,10 +244,24 @@ async function measureBackend(mod, backend, modelBytes, iters, warmupRuns) {
     for (let i = 0; i < warmupRuns + iters; i++) {
       const s = performance.now();
       const out = await compiled.run(inputs);
+
+      // MANDATORY, do not remove. WebGPU submits work asynchronously: run()
+      // resolves once commands are enqueued, not once they have executed.
+      // Without this readback the timer measures submission and reports
+      // physically impossible numbers (measured: 0.2ms for MobileNetV2).
+      // Upstream does the same — demos/mobilenetv2/src/index.ts stops its
+      // timer only after awaiting .data().
+      //
+      // This makes the metric "time to usable output" rather than "kernel
+      // time". That is the honest choice for a demo site: it is what a user
+      // actually waits for.
+      const outTensors = Array.isArray(out) ? out : Object.values(out ?? {});
+      await Promise.all(outTensors.map((t) => t.data()));
+
       const elapsed = performance.now() - s;
       if (i === 0) firstInferenceMs = elapsed;
       if (i >= warmupRuns) samples.push(elapsed);
-      for (const t of Object.values(out ?? {})) t?.delete?.();
+      for (const t of outTensors) t?.delete?.();
     }
     for (const t of Object.values(inputs)) t?.delete?.();
 
