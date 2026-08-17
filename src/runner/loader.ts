@@ -9,6 +9,9 @@
  */
 import type * as LiteRtCore from '@litertjs/core';
 
+import {errorMessage} from './errors';
+import {fetchWithRetry, retryAsync} from './fetch-retry';
+
 export type LiteRt = typeof LiteRtCore;
 
 export const DEFAULT_LITERT_VERSION = '2.5.3';
@@ -93,7 +96,14 @@ export async function ensureLiteRt(
 
   let mod: LiteRt;
   try {
-    mod = await import(/* @vite-ignore */ moduleUrl(version)) as LiteRt;
+    // Retried: a single flaky network moment during a version sweep
+    // previously forced re-running the whole sweep. Not retried past an abort
+    // (retryAsync re-throws AbortError immediately) or a genuine 404/bad
+    // version — those fail the same on every attempt, so the retries would
+    // just add latency to an outcome that was never going to change.
+    mod = await retryAsync(
+        async () => await import(/* @vite-ignore */ moduleUrl(version)) as LiteRt,
+        {signal});
   } catch (e) {
     // A CDN outage or network failure is an environment fault, not a bug in
     // this code — surface it as one rather than letting an opaque import()
@@ -113,9 +123,9 @@ export async function ensureLiteRt(
   if (mode === 'threaded') {
     // A cross-origin script cannot be a pthread host under COEP, so re-host it
     // same-origin as a blob. This is what makes threaded WASM work off a CDN.
-    const res = await fetch(
-        `${root}/litert_wasm_threaded_internal.js`, signal ? {signal} : {});
-    if (!res.ok) throw new Error(`pthread host fetch ${res.status} from ${root}`);
+    const pthreadUrl = `${root}/litert_wasm_threaded_internal.js`;
+    const res = await fetchWithRetry(pthreadUrl, {signal});
+    if (!res.ok) throw new Error(`pthread host fetch ${res.status} from ${pthreadUrl}`);
     const source = await res.text();
     revokeLastThreadedBlobUrl();
     const url = URL.createObjectURL(new Blob([source], {type: 'application/javascript'}));
@@ -157,6 +167,4 @@ export function withTimeout<T>(
   });
 }
 
-export function errorMessage(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
-}
+export {errorMessage};

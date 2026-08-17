@@ -6,6 +6,8 @@
  * report, and it is what a version sweep uses. Demo pages share the same
  * runner but present it visually with exactly two metrics.
  */
+import {fetchWithRetry} from '../runner/fetch-retry';
+import {formatProgress, readWithProgress} from '../runner/progress-fetch';
 import {DEMOS} from '../registry';
 import {readEnvironment} from '../runner/env';
 import {DEFAULT_LITERT_VERSION, isValidVersion} from '../runner/loader';
@@ -208,9 +210,14 @@ async function run(): Promise<void> {
   cancelButton.hidden = false;
   try {
     statusEl.textContent = 'fetching model…';
-    const res = await fetch(demo.model.url, {signal});
+    const res = await fetchWithRetry(demo.model.url, {signal});
     if (!res.ok) throw new Error(`model fetch ${res.status} — ${demo.model.url}`);
-    const modelBytes = new Uint8Array(await res.arrayBuffer());
+    // Streamed with progress, not a flat arrayBuffer() — some of these models
+    // are tens of MB, and a static "fetching…" looks identical to a hang on a
+    // slow connection.
+    const modelBytes = await readWithProgress(res, (p) => {
+      statusEl.textContent = `fetching model… ${formatProgress(p)}`;
+    });
 
     // Serial by construction: concurrent backends contend for memory bandwidth
     // and thermal headroom and corrupt each other's timings.
