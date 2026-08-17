@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Depth Anything V2 — LiteRT.js on WebNN</title>
+<meta name="description"
+      content="Monocular depth estimation running on WebGPU, WebNN GPU and WebNN NPU via LiteRT.js.">
+<link rel="stylesheet" href="/src/ui/tokens.css">
+<link rel="stylesheet" href="/src/ui/components.css">
+</head>
+<body>
+<main class="demo-wrap">
+  <p><a href="/">&larr; all demos</a></p>
+  <h1>Depth Anything V2 (small)</h1>
+  <p style="color: var(--color-fg-muted); max-width: 40rem;">
+    Monocular depth estimation. int8 weights (<code>wi8_afp32</code>) — the shape NPUs
+    are happiest with, unlike the fp32 MobileNetV2 spike. Sample image:
+    <a href="https://commons.wikimedia.org/wiki/File:Welsh_Springer_Spaniel.jpg">Wikimedia
+    Commons</a>.
+  </p>
+
+  <div class="demo-layout">
+    <div class="demo-stage">
+      <canvas id="stage-canvas" width="512" height="512"></canvas>
+    </div>
+
+    <div class="demo-side">
+      <div class="demo-controls">
+        <fieldset>
+          <legend>Backend</legend>
+          <label><input type="radio" name="backend" value="webnn-npu" checked> WebNN NPU</label>
+          <label><input type="radio" name="backend" value="webnn-gpu"> WebNN GPU</label>
+          <label><input type="radio" name="backend" value="webgpu"> WebGPU</label>
+          <label><input type="radio" name="backend" value="wasm"> WASM (CPU baseline)</label>
+        </fieldset>
+      </div>
+
+      <div id="receipt" class="receipt-badge"></div>
+
+      <div>
+        <div id="metric-load" class="metric-row"></div>
+        <div id="metric-inference" class="metric-row"></div>
+      </div>
+
+      <div class="demo-status" id="status"></div>
+    </div>
+  </div>
+</main>
+<script type="module" src="/src/demos/depth-anything/main.ts"></script>
+</body>
+</html>

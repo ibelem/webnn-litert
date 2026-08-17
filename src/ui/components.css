@@ -1,0 +1,130 @@
+/*
+ * Styles for the LOCKED components (receipt-badge.ts, metric-row.ts) plus
+ * the demo chrome shell. Shared across every demo page — do not fork a
+ * per-demo copy of these rules; that's exactly the drift the locked
+ * components exist to prevent. Tokens only, enforced by stylelint.
+ */
+
+.receipt-badge {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  border: var(--border-hairline) solid var(--color-border);
+}
+
+.receipt-badge__text {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.receipt-badge__detail {
+  font-size: var(--text-xs);
+  color: var(--color-fg-muted);
+  font-family: var(--font-mono);
+}
+
+/* 'full' is the quiet, unmarked state on purpose — see DESIGN.md. */
+.receipt-badge--full {
+  border-color: var(--color-border);
+  color: var(--color-fg-muted);
+}
+
+.receipt-badge--partial {
+  border-color: var(--delegation-partial);
+  background: var(--delegation-partial-tint);
+  color: var(--delegation-partial);
+}
+
+.receipt-badge--failed {
+  border-color: var(--delegation-failed);
+  background: var(--delegation-failed-tint);
+  color: var(--delegation-failed);
+}
+
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: var(--space-1) 0;
+  font-size: var(--text-sm);
+}
+
+.metric-row__label {
+  color: var(--color-fg-muted);
+}
+
+.metric-row__value {
+  font-weight: var(--weight-medium);
+}
+
+/* Demo page chrome */
+
+.demo-wrap {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+}
+
+.demo-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+}
+
+@media (min-width: 48rem) {
+  .demo-layout {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+.demo-stage {
+  background: var(--color-bg-subtle);
+  border: var(--border-hairline) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.demo-stage canvas {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+}
+
+.demo-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.demo-controls fieldset {
+  border: var(--border-hairline) solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  margin: 0 0 var(--space-3);
+}
+
+.demo-controls legend {
+  font-size: var(--text-xs);
+  color: var(--color-fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.demo-controls label {
+  font-size: var(--text-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+}
+
+.demo-status {
+  font-size: var(--text-sm);
+  color: var(--color-fg-muted);
+  min-height: 1.5em;
+}

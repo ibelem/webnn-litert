@@ -74,7 +74,7 @@ export const DEMOS: readonly DemoEntry[] = [
       url: 'https://huggingface.co/webnn/depth-anything-v2-small/resolve/main/tflite/depth_anything_v2_small_wi8_afp32.tflite',
     },
     backends: BACKENDS,
-    implemented: false,
+    implemented: true,
   },
   {
     slug: 'real-esrgan',

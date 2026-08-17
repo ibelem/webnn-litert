@@ -28,6 +28,7 @@ export default defineConfig({
       input: {
         home: 'index.html',
         debug: 'debug.html',
+        'depth-anything': 'depth-anything.html',
       },
     },
     target: 'es2022',

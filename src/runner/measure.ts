@@ -107,6 +107,11 @@ function isEnvironmentFailure(e: unknown): boolean {
   return !(e instanceof TypeError || e instanceof ReferenceError || e instanceof RangeError);
 }
 
+/** A named output tensor's data, read back once already for timing purposes
+ *  (see the MANDATORY readback comment below) — reused here rather than
+ *  read twice. */
+export type OutputData = Record<string, Awaited<ReturnType<InstanceType<LiteRt['Tensor']>['data']>>>;
+
 export interface MeasureOptions {
   /** Aborts the compile and, on the next check, the inference loop. A hung
    *  driver or a dead CDN must not leave the caller waiting forever. */
@@ -114,6 +119,20 @@ export interface MeasureOptions {
   /** Wall-clock budget for load+compile. WebNN graph building measured at
    *  ~2000ms on real hardware; this should sit comfortably above that. */
   compileTimeoutMs?: number;
+  /**
+   * Builds the input tensors for every run. Defaults to zero-filled inputs of
+   * the model's declared shape — correct for /debug, where delegation truth
+   * and latency are the point and real pixels add nothing. Demos pass real
+   * preprocessed data here instead of duplicating the compile/timing loop.
+   */
+  buildInputs?: (mod: LiteRt, details: readonly TensorDetails[]) =>
+      Record<string, InstanceType<LiteRt['Tensor']>>;
+  /**
+   * Called once, with the LAST iteration's output data, before it is deleted.
+   * Demos use this to capture pixels for rendering — the readback this needs
+   * already happens every iteration for timing, so this adds no extra cost.
+   */
+  onFinalOutput?: (details: readonly TensorDetails[], data: OutputData) => void;
 }
 
 const DEFAULT_COMPILE_TIMEOUT_MS = 30_000;
@@ -133,7 +152,12 @@ export async function measureBackend(
     warmupRuns: number,
     options: MeasureOptions = {},
 ): Promise<RunRecord> {
-  const {signal, compileTimeoutMs = DEFAULT_COMPILE_TIMEOUT_MS} = options;
+  const {
+    signal,
+    compileTimeoutMs = DEFAULT_COMPILE_TIMEOUT_MS,
+    buildInputs = makeZeroInputs,
+    onFinalOutput,
+  } = options;
   let compiled: CompiledModel | null = null;
 
   try {
@@ -165,7 +189,8 @@ export async function measureBackend(
     compiled = value;
     const delegation: Delegation = compiled.isFullyAccelerated ? 'full' : 'partial';
     const details = compiled.getInputDetails();
-    const inputs = makeZeroInputs(mod, details);
+    const outputDetails = compiled.getOutputDetails();
+    const inputs = buildInputs(mod, details);
 
     let firstInferenceMs = 0;
     const samples: number[] = [];
@@ -188,12 +213,25 @@ export async function measureBackend(
       // readback can dominate the number. DemoDefinition.maxCompareInput
       // (added when demos exist) caps input size in the side-by-side compare
       // view for exactly that reason; see DESIGN.md.
-      const outTensors = Array.isArray(out) ? out : Object.values(out);
-      await Promise.all(outTensors.map((t) => t.data()));
+      const outTensors: Array<InstanceType<LiteRt['Tensor']>> =
+          Array.isArray(out) ? out : Object.values(out);
+      const outNames = Array.isArray(out) ?
+          outputDetails.map((d) => d.name) : Object.keys(out);
+      const outData = await Promise.all(outTensors.map((t) => t.data()));
 
       const elapsed = performance.now() - t0;
       if (i === 0) firstInferenceMs = elapsed;
       if (i >= warmupRuns) samples.push(elapsed);
+
+      const isLastIteration = i === warmupRuns + iterations - 1;
+      if (isLastIteration && onFinalOutput) {
+        const named: OutputData = {};
+        outNames.forEach((name, idx) => {
+          const d = outData[idx];
+          if (d !== undefined) named[name] = d;
+        });
+        onFinalOutput(outputDetails, named);
+      }
 
       for (const t of outTensors) t.delete();
     }
