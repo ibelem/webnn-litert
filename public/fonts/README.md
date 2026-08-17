@@ -9,7 +9,7 @@ these exact paths:
 
 ```
 public/fonts/instrument-sans-v1-latin/instrument-sans-v1-latin-700.woff2
-public/fonts/geist-v1-latin/geist-v1-latin-200.woff2
+public/fonts/geist-v1-latin/geist-v5-latin-regular.woff2
 public/fonts/geist-v1-latin/geist-v1-latin-600.woff2
 public/fonts/intel-one-mono/IntelOneMono-Regular.woff2
 ```
