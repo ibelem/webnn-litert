@@ -4,7 +4,11 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "types": ["vite/client", "@webgpu/types"],
+    // Explicit list disables automatic @types/* inclusion, so anything used in
+    // vite.config.ts must be named here AND be a real devDependency. Relying on
+    // a transitively-present @types/node is what broke the Vercel build while
+    // the local build passed.
+    "types": ["vite/client", "@webgpu/types", "node"],
 
     "strict": true,
     "noUnusedLocals": true,
