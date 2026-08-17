@@ -356,10 +356,18 @@ not three rows of a table. Same input, three pictures, three numbers.
 `throughput_fps`, raw `inference_times[]`. Warmup timed but excluded from statistics.
 Costs nothing, goes to the console, available for a future export or a LiteRT bug report.
 
-**Display**: current/rolling latency under the output; FPS only on continuous demos;
-load+compile once during the load state; the delegation badge always. `p90`, `best`,
-`average` and `throughput_fps` as labelled statistics are benchmark furniture — computed,
-never rendered.
+**Display on the page — exactly two metrics:** `loadAndCompile` time (once per backend,
+and it stays visible, because it's the number that shows what WebNN costs up front: ~2000 ms
+vs WebGPU's ~35 ms) and inference time (latest run, updating live).
+
+**Everything else is `console.log` only:** average, median, best, p90, throughput_fps,
+time_to_first_ms, first_inference_ms, raw `inference_times[]`, effective accelerator, input
+shapes, browser channel and version — one object per backend, copy-pasteable into a bug
+report. FPS is in that list deliberately: it's `1000 / average` and adds nothing beside a
+live inference figure.
+
+The **delegation badge is not a metric** and is exempt — it stays on the page always. It's
+the receipt that makes the two visible numbers trustworthy.
 
 ### What is inside the measured region
 

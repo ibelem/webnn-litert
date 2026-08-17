@@ -214,17 +214,24 @@ change.
 special-cased as `first_inference_ms`. Keep all of it — it costs nothing, it goes to the
 devtools console, and it's there if a future export or a LiteRT bug report needs it.
 
-**Display** only these, because this is a demo site:
+**On the page — exactly two metrics, no more:**
 
-| Shown | Where |
+| Shown | Notes |
 |---|---|
-| Current / rolling inference latency | Under the output, one figure |
-| FPS | Only on continuous (webcam) demos, where it's meaningful |
-| Load + compile, once | In the load state, then it stops being interesting |
-| Delegation badge | Always, next to the latency |
+| `loadAndCompile` time | Measured once per backend. Stays visible after loading — it's the number that shows what WebNN costs up front (~2000 ms vs WebGPU's ~35 ms). |
+| Inference time | The latest run, updating live. One figure. |
 
-`p90`, `best`, `average`, `throughput_fps` as a labelled statistic — **do not render
-these.** They're benchmark furniture and they turn a demo into a report.
+**Everything else goes to `console.log` only:** `average_ms`, `median_ms`, `best_ms`,
+`p90_ms`, `throughput_fps`, `time_to_first_ms`, `first_inference_ms`, raw
+`inference_times[]`, effective accelerator, input shapes, browser channel and version.
+Full record per backend, one object, easy to copy into a bug report.
+
+FPS is included in that list deliberately — it's `1000 / average` and adds no information
+next to a live inference figure. Don't put it on the page.
+
+**The delegation badge is not a metric and is not covered by this rule.** It's a receipt,
+it stays on the page always, and it's the reason the two visible numbers can be trusted.
+See *The one rule that matters*.
 
 ### What is inside the measured region
 
