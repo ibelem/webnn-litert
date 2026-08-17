@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M0 spike — LiteRT.js delegation truth</title>
+<link rel="stylesheet" href="../src/ui/tokens.css">
+<style>
+  /* Spike-only layout. Deliberately thin: this page exists to produce a table
+     of facts, not to be designed. Real layout lands in M1 with the shell. */
+  main { max-width: 68rem; margin: 0 auto; padding: var(--space-6) var(--space-4); }
+  p.lede { color: var(--color-fg-muted); max-width: 48rem; }
+  fieldset {
+    border: var(--border-hairline) solid var(--color-border);
+    border-radius: var(--radius); padding: var(--space-3) var(--space-4);
+    margin: 0 0 var(--space-3);
+  }
+  legend { font-size: var(--text-xs); color: var(--color-fg-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  label { font-size: var(--text-sm); display: inline-flex; align-items: center; gap: var(--space-1); margin-right: var(--space-4); }
+  input, select, button { font: inherit; font-size: var(--text-sm); }
+  input[type="text"], input[type="number"], select {
+    background: var(--color-surface); color: var(--color-fg);
+    border: var(--border-hairline) solid var(--color-border);
+    border-radius: var(--radius-sm); padding: var(--space-1) var(--space-2);
+  }
+  button.run {
+    background: var(--color-accent); color: var(--color-accent-fg);
+    border: 0; border-radius: var(--radius-pill);
+    padding: var(--space-2) var(--space-5); font-weight: var(--weight-medium); cursor: pointer;
+  }
+  button.run[disabled] { opacity: 0.5; cursor: default; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: var(--space-5); font-size: var(--text-sm); }
+  th { text-align: left; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.06em;
+       color: var(--color-fg-muted); font-weight: var(--weight-medium);
+       border-bottom: var(--border-hairline) solid var(--color-border); padding: var(--space-2); }
+  td { padding: var(--space-2); border-bottom: var(--border-hairline) solid var(--color-border); vertical-align: top; }
+  tbody tr[data-backend="wasm"]        { background: var(--backend-wasm-tint); }
+  tbody tr[data-backend="webgpu"]      { background: var(--backend-webgpu-tint); }
+  tbody tr[data-backend="webnn-gpu"]   { background: var(--backend-webnn-gpu-tint); }
+  tbody tr[data-backend="webnn-npu"]   { background: var(--backend-webnn-npu-tint); }
+
+  .chip { font-size: var(--text-2xs); font-weight: var(--weight-medium);
+          padding: var(--space-1) var(--space-2); border-radius: var(--radius-pill);
+          border: var(--border-hairline) solid currentcolor; white-space: nowrap; }
+  tr[data-backend="wasm"]      .chip { color: var(--backend-wasm); }
+  tr[data-backend="webgpu"]    .chip { color: var(--backend-webgpu); }
+  tr[data-backend="webnn-gpu"] .chip { color: var(--backend-webnn-gpu); }
+  tr[data-backend="webnn-npu"] .chip { color: var(--backend-webnn-npu); }
+
+  /* Delegation is a SEPARATE channel from backend hue, and always carries text.
+     "full" is deliberately unmarked -- see DESIGN.md. */
+  .deleg-full    { color: var(--delegation-full); }
+  .deleg-partial { color: var(--delegation-partial); font-weight: var(--weight-medium); }
+  .deleg-failed  { color: var(--delegation-failed); font-weight: var(--weight-medium); }
+  .suppressed { color: var(--color-fg-faint); font-style: italic; }
+
+  #env, #log {
+    font-family: var(--font-mono); font-size: var(--text-2xs);
+    background: var(--color-bg-subtle); border: var(--border-hairline) solid var(--color-border);
+    border-radius: var(--radius); padding: var(--space-3); white-space: pre-wrap;
+    margin-top: var(--space-5); max-height: 20rem; overflow: auto;
+  }
+  h2 { margin-top: var(--space-6); }
+</style>
+</head>
+<body>
+<main>
+  <h1>M0 spike — delegation truth</h1>
+  <p class="lede">
+    Answers one question: for a given <code>.tflite</code> model, LiteRT.js version and
+    backend, does the model <em>actually</em> run where it claims? Timings are secondary
+    and only meaningful when delegation is full. Nothing here is designed — it exists to
+    produce a table of facts before M1 is built.
+  </p>
+
+  <fieldset>
+    <legend>Runtime</legend>
+    <label>LiteRT.js version
+      <input type="text" id="version" value="2.5.3" size="10">
+    </label>
+    <label>iterations
+      <input type="number" id="iters" value="20" min="1" max="200" style="width:5rem">
+    </label>
+    <label>warmup
+      <input type="number" id="warmup" value="3" min="0" max="20" style="width:4rem">
+    </label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Model</legend>
+    <select id="model"></select>
+  </fieldset>
+
+  <fieldset>
+    <legend>Backends — measured one at a time, never concurrently</legend>
+    <label><input type="checkbox" class="bk" value="webnn-npu" checked> webnn-npu</label>
+    <label><input type="checkbox" class="bk" value="webnn-gpu" checked> webnn-gpu</label>
+    <label><input type="checkbox" class="bk" value="webgpu" checked> webgpu</label>
+    <label><input type="checkbox" class="bk" value="wasm"> wasm (baseline)</label>
+  </fieldset>
+
+  <button class="run" id="run">Run</button>
+  <span id="status" style="font-size:var(--text-sm); color:var(--color-fg-muted); margin-left:var(--space-3)"></span>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Backend</th>
+        <th>Delegation</th>
+        <th>load+compile</th>
+        <th>first inf.</th>
+        <th>median</th>
+        <th>p90</th>
+        <th>fps</th>
+      </tr>
+    </thead>
+    <tbody id="results"></tbody>
+  </table>
+
+  <h2>Environment</h2>
+  <div id="env">reading…</div>
+
+  <h2>Captured LiteRT console output</h2>
+  <p class="lede" style="font-size:var(--text-sm)">
+    Partial delegation is reported <strong>nowhere else</strong>. This panel is half the
+    evidence, which is why <code>console_mirror</code> is load-bearing in M1.
+  </p>
+  <div id="log">(nothing yet)</div>
+</main>
+<script type="module" src="./spike.js"></script>
+</body>
+</html>
