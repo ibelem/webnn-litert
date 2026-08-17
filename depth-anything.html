@@ -29,7 +29,10 @@
       <div class="demo-controls">
         <fieldset>
           <legend>Backend</legend>
-          <label><input type="radio" name="backend" value="webnn-npu" checked> WebNN NPU</label>
+          <!-- Default backend is set in JS from runner/types.ts's DEFAULT_BACKEND
+               (currently 'webgpu') so there is exactly one place to change it,
+               not one per demo page. No `checked` attribute here. -->
+          <label><input type="radio" name="backend" value="webnn-npu"> WebNN NPU</label>
           <label><input type="radio" name="backend" value="webnn-gpu"> WebNN GPU</label>
           <label><input type="radio" name="backend" value="webgpu"> WebGPU</label>
           <label><input type="radio" name="backend" value="wasm"> WASM (CPU baseline)</label>

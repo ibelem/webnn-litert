@@ -6,7 +6,7 @@
  * forever).
  */
 import {DEFAULT_LITERT_VERSION} from '../../runner/loader';
-import type {Backend} from '../../runner/types';
+import {DEFAULT_BACKEND, type Backend} from '../../runner/types';
 import {renderMetricRow} from '../../ui/metric-row';
 import {renderReceiptBadge} from '../../ui/receipt-badge';
 import {DepthAnythingStage} from './stage';
@@ -26,6 +26,11 @@ const backendRadios = [...document.querySelectorAll<HTMLInputElement>('input[nam
 
 const stage = new DepthAnythingStage(canvas);
 
+// Default radio selection comes from the single shared constant, not a
+// hardcoded `checked` attribute per demo page — see runner/types.ts.
+const defaultRadio = backendRadios.find((r) => r.value === DEFAULT_BACKEND);
+if (defaultRadio) defaultRadio.checked = true;
+
 // URL params match the site-wide convention: ?backend= &litertjs=
 const params = new URLSearchParams(location.search);
 const urlBackend = params.get('backend');
@@ -37,7 +42,7 @@ const litertVersion = params.get('litertjs') ?? DEFAULT_LITERT_VERSION;
 
 function currentBackend(): Backend {
   const checked = backendRadios.find((r) => r.checked);
-  return (checked?.value ?? 'webnn-npu') as Backend;
+  return (checked?.value ?? DEFAULT_BACKEND) as Backend;
 }
 
 async function runCurrentBackend(): Promise<void> {

@@ -2,6 +2,17 @@
 export const BACKENDS = ['webnn-npu', 'webnn-gpu', 'webgpu', 'wasm'] as const;
 export type Backend = (typeof BACKENDS)[number];
 
+/**
+ * Default single-backend selection for every demo page, for now. WebGPU
+ * compiles in ~35ms versus WebNN's ~2000ms (measured on real hardware, see
+ * docs/designs/litert-js-webnn-demo-site.md), is broadly available, and
+ * doesn't depend on the still-unverified WebNN driver/NPU path. Once WebNN
+ * delegation is confirmed reliable per demo, this should likely become
+ * per-demo (WebNN NPU is the whole point for depth-anything specifically),
+ * not a single site-wide constant — revisit then.
+ */
+export const DEFAULT_BACKEND: Backend = 'webgpu';
+
 export function isBackend(v: string): v is Backend {
   return (BACKENDS as readonly string[]).includes(v);
 }

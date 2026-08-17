@@ -13,6 +13,18 @@ export default defineConfig({
   server: {headers: ISOLATION_HEADERS},
   preview: {headers: ISOLATION_HEADERS},
 
+  worker: {
+    // LiteRT's Emscripten WASM loader calls importScripts() internally,
+    // which module-type workers reject outright. `format: 'iife'` is what
+    // makes Vite's `?worker` import produce a classic worker CORRECTLY in
+    // both `vite dev` and `vite build` — the raw `new Worker(new URL(...))`
+    // pattern (no `?worker` suffix) only gets IIFE bundling at build time;
+    // in dev it serves untransformed ESM into a classic script context and
+    // throws "Cannot use import statement outside a module". See
+    // src/demos/depth-anything/stage.ts for the `?worker` import.
+    format: 'iife',
+  },
+
   build: {
     // Multi-page, not SPA. Vercel's cleanUrls turns debug.html into /debug,
     // so every page is a real prerendered document with its own <title> and
