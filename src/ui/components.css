@@ -67,6 +67,13 @@
   padding: var(--space-6) var(--space-4);
 }
 
+/* Was a hand-written inline style duplicated across all five demo pages —
+ * the same drift the compare-controller extraction prevented one layer up. */
+.demo-lede {
+  color: var(--color-fg-muted);
+  max-width: 40rem;
+}
+
 .demo-controls fieldset {
   border: var(--border-hairline) solid var(--color-border);
   border-radius: var(--radius);
