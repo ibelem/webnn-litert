@@ -6,7 +6,7 @@
  * report, and it is what a version sweep uses. Demo pages share the same
  * runner but present it visually with exactly two metrics.
  */
-import {fetchWithRetry} from '../runner/fetch-retry';
+import {fetchModelWithMirrorFallback} from '../runner/hf-mirror';
 import {formatProgress, readWithProgress} from '../runner/progress-fetch';
 import {DEMOS} from '../registry';
 import {readEnvironment} from '../runner/env';
@@ -210,7 +210,9 @@ async function run(): Promise<void> {
   cancelButton.hidden = false;
   try {
     statusEl.textContent = 'fetching model…';
-    const res = await fetchWithRetry(demo.model.url, {signal});
+    // Falls back to hf-mirror.com if huggingface.co is unreachable or this
+    // specific file fails there — see runner/hf-mirror.ts.
+    const res = await fetchModelWithMirrorFallback(demo.model.url, {signal});
     if (!res.ok) throw new Error(`model fetch ${res.status} — ${demo.model.url}`);
     // Streamed with progress, not a flat arrayBuffer() — some of these models
     // are tens of MB, and a static "fetching…" looks identical to a hang on a

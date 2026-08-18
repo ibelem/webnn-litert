@@ -1,5 +1,5 @@
 import {findDemo} from '../../registry';
-import {fetchWithRetry} from '../../runner/fetch-retry';
+import {fetchModelWithMirrorFallback} from '../../runner/hf-mirror';
 import {formatProgress, readWithProgress} from '../../runner/progress-fetch';
 import {MeasurementScheduler} from '../../runner/scheduler';
 import type {Backend, RunRecord} from '../../runner/types';
@@ -58,7 +58,9 @@ export class DepthAnythingStage {
 
   private async loadModelBytes(onProgress?: (m: string) => void): Promise<ArrayBuffer> {
     if (this.modelBytesCache) return this.modelBytesCache;
-    const res = await fetchWithRetry(DEMO.model.url);
+    // Falls back to hf-mirror.com if huggingface.co is unreachable or this
+    // specific file fails there — see runner/hf-mirror.ts.
+    const res = await fetchModelWithMirrorFallback(DEMO.model.url);
     if (!res.ok) throw new Error(`model fetch ${res.status} — ${DEMO.model.url}`);
     const bytes = await readWithProgress(
         res, (p) => onProgress?.(`fetching model… ${formatProgress(p)}`));
