@@ -41,6 +41,7 @@ export default defineConfig({
         home: 'index.html',
         debug: 'debug.html',
         'depth-anything': 'depth-anything.html',
+        'selfie-multiclass': 'selfie-multiclass.html',
       },
     },
     target: 'es2022',

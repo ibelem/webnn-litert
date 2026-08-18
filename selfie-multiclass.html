@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Selfie Multiclass Segmentation — LiteRT.js on WebNN</title>
+<meta name="description"
+      content="Webcam multiclass segmentation running on WebGPU, WebNN GPU and WebNN NPU via LiteRT.js.">
+<link rel="stylesheet" href="/src/ui/tokens.css">
+<link rel="stylesheet" href="/src/ui/components.css">
+</head>
+<body>
+<main class="demo-wrap">
+  <p><a href="/">&larr; all demos</a></p>
+  <h1>Selfie multiclass segmentation</h1>
+  <p style="color: var(--color-fg-muted); max-width: 40rem;">
+    One webcam snapshot, segmented into hair / body skin / face skin / clothes /
+    accessories. A single frame, not a live feed — the camera is released the instant
+    the snapshot is taken.
+  </p>
+
+  <div class="demo-controls">
+    <fieldset>
+      <legend>Compare — measured one at a time, never concurrently</legend>
+      <label><input type="checkbox" name="backend" value="webgpu" checked> WebGPU</label>
+      <label><input type="checkbox" name="backend" value="webnn-gpu"> WebNN GPU</label>
+      <label><input type="checkbox" name="backend" value="webnn-npu"> WebNN NPU</label>
+      <label><input type="checkbox" name="backend" value="wasm"> WASM (CPU baseline)</label>
+    </fieldset>
+    <button class="run" id="capture">Take snapshot &amp; run</button>
+  </div>
+
+  <div class="demo-status" id="status"></div>
+
+  <div class="compare-grid" id="compare-grid"></div>
+</main>
+<script type="module" src="/src/demos/selfie-multiclass/main.ts"></script>
+</body>
+</html>

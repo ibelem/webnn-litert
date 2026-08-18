@@ -49,12 +49,12 @@ export const DEMOS: readonly DemoEntry[] = [
   {
     slug: 'selfie-multiclass',
     title: 'Selfie segmentation',
-    blurb: 'Live webcam multiclass segmentation, 256x256.',
+    blurb: 'One webcam snapshot, multiclass segmentation at 256x256.',
     model: {
       url: 'https://huggingface.co/webnn/selfie-multiclass-256x256/resolve/main/tflite/model.tflite',
     },
     backends: BACKENDS,
-    implemented: false,
+    implemented: true,
   },
   {
     slug: 'efficientvit-seg',
