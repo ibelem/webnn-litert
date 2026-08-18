@@ -20,35 +20,19 @@
     Commons</a>.
   </p>
 
-  <div class="demo-layout">
-    <div class="demo-stage">
-      <canvas id="stage-canvas" width="512" height="512"></canvas>
-    </div>
-
-    <div class="demo-side">
-      <div class="demo-controls">
-        <fieldset>
-          <legend>Backend</legend>
-          <!-- Default backend is set in JS from runner/types.ts's DEFAULT_BACKEND
-               (currently 'webgpu') so there is exactly one place to change it,
-               not one per demo page. No `checked` attribute here. -->
-          <label><input type="radio" name="backend" value="webnn-npu"> WebNN NPU</label>
-          <label><input type="radio" name="backend" value="webnn-gpu"> WebNN GPU</label>
-          <label><input type="radio" name="backend" value="webgpu"> WebGPU</label>
-          <label><input type="radio" name="backend" value="wasm"> WASM (CPU baseline)</label>
-        </fieldset>
-      </div>
-
-      <div id="receipt" class="receipt-badge"></div>
-
-      <div>
-        <div id="metric-load" class="metric-row"></div>
-        <div id="metric-inference" class="metric-row"></div>
-      </div>
-
-      <div class="demo-status" id="status"></div>
-    </div>
+  <div class="demo-controls">
+    <fieldset>
+      <legend>Compare — measured one at a time, never concurrently</legend>
+      <label><input type="checkbox" name="backend" value="webgpu" checked> WebGPU</label>
+      <label><input type="checkbox" name="backend" value="webnn-gpu"> WebNN GPU</label>
+      <label><input type="checkbox" name="backend" value="webnn-npu"> WebNN NPU</label>
+      <label><input type="checkbox" name="backend" value="wasm"> WASM (CPU baseline)</label>
+    </fieldset>
   </div>
+
+  <div class="demo-status" id="status"></div>
+
+  <div class="compare-grid" id="compare-grid"></div>
 </main>
 <script type="module" src="/src/demos/depth-anything/main.ts"></script>
 </body>

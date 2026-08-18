@@ -1,12 +1,19 @@
 /**
- * Depth Anything demo page controller. Chrome only — the canvas it points at
- * is a stage owned by DepthAnythingStage and must never be touched by
- * innerHTML/replaceChildren on an ancestor; see CLAUDE.md, the
- * element-identity rule (transferControlToOffscreen is once-per-canvas,
- * forever).
+ * Depth Anything compare-view controller. Renders one canvas per selected
+ * backend, side by side — "the compare view is the product, not a feature"
+ * (design doc). Each canvas is its own DepthAnythingStage instance (its own
+ * worker, its own transferControlToOffscreen — never shared or rebuilt; see
+ * CLAUDE.md, the element-identity rule).
+ *
+ * Measurement is serial across backends by construction: a `for...of` loop
+ * with `await` inside cannot run two iterations concurrently, which is all
+ * "measured one at a time" actually requires here. A dedicated scheduler
+ * class was deliberately NOT built for this — see runner/scheduler.ts's own
+ * doc comment, which reserves that name for a genuine N-already-live-workers
+ * mutex if one ever becomes necessary. Don't add one preemptively.
  */
 import {DEFAULT_LITERT_VERSION} from '../../runner/loader';
-import {DEFAULT_BACKEND, type Backend} from '../../runner/types';
+import {BACKENDS, DEFAULT_BACKEND, isBackend, type Backend} from '../../runner/types';
 import {renderMetricRow} from '../../ui/metric-row';
 import {renderReceiptBadge} from '../../ui/receipt-badge';
 import {DepthAnythingStage} from './stage';
@@ -17,76 +24,158 @@ function el<T extends HTMLElement>(id: string): T {
   return node as T;
 }
 
-const canvas = el<HTMLCanvasElement>('stage-canvas');
-const receiptEl = el<HTMLDivElement>('receipt');
-const metricLoadEl = el<HTMLDivElement>('metric-load');
-const metricInferenceEl = el<HTMLDivElement>('metric-inference');
 const statusEl = el<HTMLDivElement>('status');
-const backendRadios = [...document.querySelectorAll<HTMLInputElement>('input[name="backend"]')];
+const gridEl = el<HTMLDivElement>('compare-grid');
+const backendBoxes = [...document.querySelectorAll<HTMLInputElement>('input[name="backend"]')];
 
-const stage = new DepthAnythingStage(canvas);
-
-// Default radio selection comes from the single shared constant, not a
-// hardcoded `checked` attribute per demo page — see runner/types.ts.
-const defaultRadio = backendRadios.find((r) => r.value === DEFAULT_BACKEND);
-if (defaultRadio) defaultRadio.checked = true;
-
-// URL params match the site-wide convention: ?backend= &litertjs=
+// URL params match the site-wide convention: ?backend=a,b &litertjs=
 const params = new URLSearchParams(location.search);
-const urlBackend = params.get('backend');
-if (urlBackend) {
-  const match = backendRadios.find((r) => r.value === urlBackend);
-  if (match) match.checked = true;
+const urlBackends = params.get('backend')?.split(',').map((s) => s.trim()).filter(isBackend);
+if (urlBackends?.length) {
+  for (const box of backendBoxes) box.checked = urlBackends.includes(box.value as Backend);
+} else {
+  for (const box of backendBoxes) box.checked = box.value === DEFAULT_BACKEND;
 }
 const litertVersion = params.get('litertjs') ?? DEFAULT_LITERT_VERSION;
 
-function currentBackend(): Backend {
-  const checked = backendRadios.find((r) => r.checked);
-  return (checked?.value ?? DEFAULT_BACKEND) as Backend;
+interface Card {
+  stage: DepthAnythingStage;
+  receiptEl: HTMLDivElement;
+  metricLoadEl: HTMLDivElement;
+  metricInferenceEl: HTMLDivElement;
 }
 
-async function runCurrentBackend(): Promise<void> {
-  const backend = currentBackend();
-  try {
-    const record = await stage.run({
-      backend,
-      litertVersion,
-      iterations: 10,
-      warmupRuns: 3,
-      onProgress: (message) => {
-        statusEl.textContent = message;
-      },
-    });
+const cards = new Map<Backend, Card>();
 
-    renderReceiptBadge(receiptEl, record.delegation, record.warnings);
+function createCard(backend: Backend): Card {
+  const wrap = document.createElement('div');
+  wrap.className = 'compare-card';
+  wrap.dataset.backend = backend;
 
-    const isFull = record.delegation === 'full';
-    renderMetricRow(
-        metricLoadEl, 'Load + compile',
-        record.metrics ? record.metrics.load_and_compile_ms : null, !isFull);
-    renderMetricRow(
-        metricInferenceEl, 'Inference',
-        record.metrics ? record.metrics.median_ms : null, !isFull);
+  const label = document.createElement('div');
+  label.className = 'compare-card__label';
+  label.textContent = backend;
 
-    statusEl.textContent = record.metrics ?
-        `done — ${backend} on @litertjs/core@${litertVersion}` :
-        (record.error ?? 'failed');
+  const stageWrap = document.createElement('div');
+  stageWrap.className = 'compare-card__stage';
+  const canvas = document.createElement('canvas');
+  canvas.width = 384;
+  canvas.height = 384;
+  stageWrap.append(canvas);
 
-    // Full record to console — everything the page does not show, per
-    // CLAUDE.md's "compute all, display little" rule.
-    console.log(backend, record);
-  } catch (e) {
-    // A superseded run's AbortError is expected noise when the visitor
-    // switches backends quickly — not a failure worth showing.
-    if (e instanceof DOMException && e.name === 'AbortError') return;
-    statusEl.textContent = e instanceof Error ? `error: ${e.message}` : String(e);
+  const receiptEl = document.createElement('div');
+  receiptEl.className = 'receipt-badge';
+
+  const metrics = document.createElement('div');
+  metrics.className = 'compare-card__metrics';
+  const metricLoadEl = document.createElement('div');
+  const metricInferenceEl = document.createElement('div');
+  metrics.append(metricLoadEl, metricInferenceEl);
+
+  wrap.append(label, stageWrap, receiptEl, metrics);
+  gridEl.append(wrap);
+
+  // transferControlToOffscreen happens inside this constructor, exactly
+  // once, for this canvas — see DepthAnythingStage / the element-identity
+  // rule. This card's canvas must never be recreated for the same stage.
+  return {stage: new DepthAnythingStage(canvas), receiptEl, metricLoadEl, metricInferenceEl};
+}
+
+function destroyCard(backend: Backend): void {
+  const card = cards.get(backend);
+  if (!card) return;
+  card.stage.dispose();
+  document.querySelector(`.compare-card[data-backend="${backend}"]`)?.remove();
+  cards.delete(backend);
+}
+
+function selectedBackends(): Backend[] {
+  // Fixed BACKENDS order, not checkbox/DOM order, so the grid layout is
+  // stable regardless of click order.
+  return BACKENDS.filter((b) => backendBoxes.find((box) => box.value === b)?.checked);
+}
+
+/** Bumped on every selection change or run request. A stale run (from a
+ *  selection the visitor already changed away from) checks this before
+ *  touching the DOM instead of racing a fresher one. */
+let generation = 0;
+
+function reconcileCards(): void {
+  const selected = new Set(selectedBackends());
+  for (const backend of [...cards.keys()]) {
+    if (!selected.has(backend)) destroyCard(backend);
+  }
+  for (const backend of selected) {
+    if (!cards.has(backend)) cards.set(backend, createCard(backend));
   }
 }
 
-for (const radio of backendRadios) {
-  radio.addEventListener('change', () => void runCurrentBackend());
+async function runAll(): Promise<void> {
+  const myGeneration = ++generation;
+  reconcileCards();
+  const backends = selectedBackends();
+
+  if (!backends.length) {
+    statusEl.textContent = 'select at least one backend';
+    return;
+  }
+
+  // Serial by construction — see file header. Concurrent backends would
+  // contend for memory bandwidth and thermal headroom and corrupt each
+  // other's timings.
+  for (const backend of backends) {
+    if (myGeneration !== generation) return; // superseded by a newer selection
+
+    const card = cards.get(backend);
+    if (!card) continue; // destroyed mid-run by a selection change
+
+    statusEl.textContent = `measuring ${backend}…`;
+    try {
+      const record = await card.stage.run({
+        backend,
+        litertVersion,
+        iterations: 10,
+        warmupRuns: 3,
+        onProgress: (message) => {
+          if (myGeneration === generation) statusEl.textContent = `${backend}: ${message}`;
+        },
+      });
+
+      if (myGeneration !== generation || !cards.has(backend)) continue; // stale
+
+      renderReceiptBadge(card.receiptEl, record.delegation, record.warnings);
+      const isFull = record.delegation === 'full';
+      renderMetricRow(
+          card.metricLoadEl, 'Load + compile',
+          record.metrics ? record.metrics.load_and_compile_ms : null, !isFull);
+      renderMetricRow(
+          card.metricInferenceEl, 'Inference',
+          record.metrics ? record.metrics.median_ms : null, !isFull);
+
+      // Full record to console — everything the page does not show, per
+      // CLAUDE.md's "compute all, display little" rule.
+      console.log(backend, record);
+    } catch (e) {
+      // A superseded run's AbortError is expected noise when the visitor
+      // changes selection mid-flight — not a failure worth showing.
+      if (e instanceof DOMException && e.name === 'AbortError') continue;
+      if (myGeneration !== generation || !cards.has(backend)) continue;
+      renderReceiptBadge(card.receiptEl, 'failed', []);
+      statusEl.textContent = e instanceof Error ? `${backend}: ${e.message}` : String(e);
+    }
+  }
+
+  if (myGeneration === generation) {
+    statusEl.textContent = `done — measured sequentially on @litertjs/core@${litertVersion}`;
+  }
 }
 
-void runCurrentBackend();
+for (const box of backendBoxes) {
+  box.addEventListener('change', () => void runAll());
+}
 
-window.addEventListener('beforeunload', () => stage.dispose());
+void runAll();
+
+window.addEventListener('beforeunload', () => {
+  for (const backend of [...cards.keys()]) destroyCard(backend);
+});
