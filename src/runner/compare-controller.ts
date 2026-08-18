@@ -21,10 +21,11 @@ export interface CompareControllerOptions {
   gridEl: HTMLElement;
   backendBoxes: HTMLInputElement[];
   litertVersion: string;
-  /** Creates one demo's Stage bound to a fresh canvas. Called once per
-   *  backend selected — see element-identity rule in CLAUDE.md:
-   *  transferControlToOffscreen happens inside this call, exactly once. */
-  createStage: (canvas: HTMLCanvasElement) => StageLike;
+  /** Creates one demo's Stage bound to a fresh canvas or DOM container.
+   *  Called once per backend selected — see element-identity rule in CLAUDE.md:
+   *  transferControlToOffscreen happens inside this call, exactly once.
+   *  Returns both the stage and the container element to append to the card. */
+  createStage: (canvas: HTMLCanvasElement) => {stage: StageLike; container: HTMLElement};
   canvasWidth?: number;
   canvasHeight?: number;
   iterations?: number;
@@ -73,10 +74,13 @@ export function createCompareController(opts: CompareControllerOptions) {
 
     const stageWrap = document.createElement('div');
     stageWrap.className = 'compare-card__stage';
+
+    // Create canvas for canvas-based demos, or get container from DOM-based demos
     const canvas = document.createElement('canvas');
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
-    stageWrap.append(canvas);
+    const {stage, container} = createStage(canvas);
+    stageWrap.append(container);
 
     const receiptEl = document.createElement('div');
     receiptEl.className = 'receipt-badge';
@@ -90,7 +94,7 @@ export function createCompareController(opts: CompareControllerOptions) {
     wrap.append(label, stageWrap, receiptEl, metrics);
     gridEl.append(wrap);
 
-    return {stage: createStage(canvas), receiptEl, metricLoadEl, metricInferenceEl};
+    return {stage, receiptEl, metricLoadEl, metricInferenceEl};
   }
 
   function destroyCard(backend: Backend): void {

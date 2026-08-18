@@ -12,6 +12,12 @@ import type {Backend, RunRecord} from './types';
 export interface InitMessage {
   type: 'init';
   canvas: OffscreenCanvas;
+  /**
+   * If true, the worker will return output data via 'render-data' messages
+   * instead of rendering to canvas. Used for DOM-based demos (e.g., text
+   * classification).
+   */
+  domMode?: boolean;
 }
 
 export interface RunMessage {
@@ -56,4 +62,21 @@ export interface WorkerErrorMessage {
   message: string;
 }
 
-export type WorkerToMainMessage = RecordMessage | WorkerErrorMessage;
+/**
+ * Message for demos that render via DOM instead of canvas (e.g., text-based
+ * classification). Returns the raw output data so the main thread can render
+ * it into HTML elements.
+ */
+export interface RenderDataMessage {
+  type: 'render-data';
+  requestId: string;
+  outputDetails: readonly {
+    name: string;
+    shape: readonly number[];
+    dtype: string;
+  }[];
+  data: Record<string, Float32Array | Int32Array | Uint8Array | readonly number[]>;
+  extra?: unknown;
+}
+
+export type WorkerToMainMessage = RecordMessage | WorkerErrorMessage | RenderDataMessage;

@@ -139,7 +139,8 @@ export class SelfieMulticlassStage {
           return;
         }
         if (msg.type === 'record') resolve(msg.record);
-        else reject(new Error(msg.message));
+        else if (msg.type === 'worker-error') reject(new Error(msg.message));
+        else reject(new Error(`unexpected message type: ${msg.type}`));
       };
       this.worker.addEventListener('message', onMessage);
 

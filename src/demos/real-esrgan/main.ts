@@ -17,7 +17,10 @@ const controller = createCompareController({
   gridEl: el('compare-grid'),
   backendBoxes: [...document.querySelectorAll<HTMLInputElement>('input[name="backend"]')],
   litertVersion,
-  createStage: (canvas) => new RealEsrganStage(canvas),
+  createStage: (canvas) => ({
+    stage: new RealEsrganStage(canvas),
+    container: canvas,
+  }),
   // The output tile is 4x the input, and this is the heaviest demo's
   // readback per iteration — keep the default 384x384 canvas so the compare
   // grid stays a fixed, comparable size; the model's own tile size (not

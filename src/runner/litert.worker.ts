@@ -52,6 +52,7 @@ export interface DemoWorkerHandler {
  */
 export function runDemoWorker(handler: DemoWorkerHandler): void {
   let ctx: OffscreenCanvasRenderingContext2D | null = null;
+  let domMode = false;
 
   function post(message: WorkerToMainMessage): void {
     self.postMessage(message);
@@ -61,9 +62,12 @@ export function runDemoWorker(handler: DemoWorkerHandler): void {
     const msg = event.data;
 
     if (msg.type === 'init') {
-      const c = msg.canvas.getContext('2d');
-      if (!c) throw new Error('OffscreenCanvas 2D context unavailable in worker');
-      ctx = c;
+      domMode = msg.domMode ?? false;
+      if (!domMode) {
+        const c = msg.canvas.getContext('2d');
+        if (!c) throw new Error('OffscreenCanvas 2D context unavailable in worker');
+        ctx = c;
+      }
       return;
     }
 
@@ -74,7 +78,7 @@ export function runDemoWorker(handler: DemoWorkerHandler): void {
 
   async function handleRun(
       msg: Extract<MainToWorkerMessage, {type: 'run'}>): Promise<void> {
-    if (!ctx) {
+    if (!domMode && !ctx) {
       post({type: 'worker-error', requestId: msg.requestId, message: 'worker not initialized'});
       return;
     }
@@ -94,7 +98,23 @@ export function runDemoWorker(handler: DemoWorkerHandler): void {
               return inputs;
             },
             onFinalOutput: (outputDetails, data) => {
-              handler.render(activeCtx, outputDetails, data, msg.extra);
+              if (domMode) {
+                // In DOM mode, send output data back to main thread for rendering
+                post({
+                  type: 'render-data',
+                  requestId: msg.requestId,
+                  outputDetails: outputDetails.map(d => ({
+                    name: d.name,
+                    shape: Array.from(d.shape),
+                    dtype: d.dtype,
+                  })),
+                  data,
+                  extra: msg.extra,
+                });
+              } else {
+                // Canvas mode: render directly to OffscreenCanvas
+                handler.render(activeCtx!, outputDetails, data, msg.extra);
+              }
             },
           });
       post({type: 'record', requestId: msg.requestId, record});

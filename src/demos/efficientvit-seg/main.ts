@@ -17,7 +17,10 @@ const controller = createCompareController({
   gridEl: el('compare-grid'),
   backendBoxes: [...document.querySelectorAll<HTMLInputElement>('input[name="backend"]')],
   litertVersion,
-  createStage: (canvas) => new EfficientVitStage(canvas),
+  createStage: (canvas) => ({
+    stage: new EfficientVitStage(canvas),
+    container: canvas,
+  }),
 });
 
 controller.applyUrlBackendSelection(DEFAULT_BACKEND);

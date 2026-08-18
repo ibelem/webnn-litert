@@ -1,7 +1,7 @@
 import {DEFAULT_LITERT_VERSION} from '../../runner/loader';
 import {createCompareController} from '../../runner/compare-controller';
 import {DEFAULT_BACKEND} from '../../runner/types';
-import {MobilenetStage} from './stage';
+import {MobilenetDomStage} from './stage-dom';
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
@@ -17,11 +17,17 @@ const controller = createCompareController({
   gridEl: el('compare-grid'),
   backendBoxes: [...document.querySelectorAll<HTMLInputElement>('input[name="backend"]')],
   litertVersion,
-  createStage: (canvas) => new MobilenetStage(canvas),
-  // Wider, shorter than the segmentation demos' canvases — this one holds
-  // 5 lines of text, not a square image.
-  canvasWidth: 384,
-  canvasHeight: 168,
+  createStage: (_canvas) => {
+    const container = document.createElement('div');
+    container.className = 'classification-container';
+    return {
+      stage: new MobilenetDomStage(container),
+      container,
+    };
+  },
+  // No canvas dimensions needed for DOM-based rendering
+  canvasWidth: 0,
+  canvasHeight: 0,
 });
 
 controller.applyUrlBackendSelection(DEFAULT_BACKEND);
