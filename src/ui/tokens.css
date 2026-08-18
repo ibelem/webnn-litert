@@ -167,6 +167,12 @@
 
   /* Borders */
   --border-hairline: 1px;
+
+  /* Shadows — using space tokens for consistency */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 5%);
+  --shadow-md: 0 4px 6px rgb(0 0 0 / 7%);
+  --shadow-lg: 0 8px 24px rgb(0 0 0 / 8%);
+  --shadow-xl: 0 12px 32px rgb(0 0 0 / 10%);
 }
 
 /* Dark: system preference, unless explicitly opted into light. */
@@ -202,6 +208,12 @@
     --delegation-partial-tint: rgb(249 126 60 / 12%);
     --delegation-failed: #ff5c9d;
     --delegation-failed-tint: rgb(255 92 157 / 12%);
+
+    /* Dark mode shadows — lighter for visibility on dark backgrounds */
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 20%);
+    --shadow-md: 0 4px 6px rgb(0 0 0 / 25%);
+    --shadow-lg: 0 8px 24px rgb(0 0 0 / 30%);
+    --shadow-xl: 0 12px 32px rgb(0 0 0 / 35%);
   }
 }
 
@@ -236,6 +248,12 @@
   --delegation-partial-tint: rgb(249 126 60 / 12%);
   --delegation-failed: #ff5c9d;
   --delegation-failed-tint: rgb(255 92 157 / 12%);
+
+  /* Dark mode shadows — lighter for visibility on dark backgrounds */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 20%);
+  --shadow-md: 0 4px 6px rgb(0 0 0 / 25%);
+  --shadow-lg: 0 8px 24px rgb(0 0 0 / 30%);
+  --shadow-xl: 0 12px 32px rgb(0 0 0 / 35%);
 }
 
 /* ---------------------------------------------------------------------------
