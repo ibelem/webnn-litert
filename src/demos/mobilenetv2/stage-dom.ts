@@ -136,7 +136,7 @@ export class MobilenetDomStage {
         } else if (msg.type === 'render-data') {
           // Store render data for when record arrives
           this.pendingRenderData = msg;
-        } else {
+        } else if (msg.type === 'worker-error') {
           reject(new Error(msg.message));
         }
       };
