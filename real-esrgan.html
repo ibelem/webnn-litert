@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Real-ESRGAN x4 — LiteRT.js on WebNN</title>
+<meta name="description"
+      content="4x image upscaling running on WebGPU, WebNN GPU and WebNN NPU via LiteRT.js.">
+<link rel="stylesheet" href="/src/ui/tokens.css">
+<link rel="stylesheet" href="/src/ui/components.css">
+</head>
+<body>
+<main class="demo-wrap">
+  <p><a href="/">&larr; all demos</a></p>
+  <h1>Real-ESRGAN x4</h1>
+  <p style="color: var(--color-fg-muted); max-width: 40rem;">
+    4x super-resolution upscaling, one tile. Heaviest of the five demos — the
+    reference tiles an arbitrary-size photo and stitches the results back together;
+    this page upscales a single model-input-sized tile so the compare view's timing
+    stays directly comparable to every other demo. Sample image:
+    <a href="https://commons.wikimedia.org/wiki/File:Welsh_Springer_Spaniel.jpg">Wikimedia
+    Commons</a>.
+  </p>
+
+  <div class="demo-controls">
+    <fieldset>
+      <legend>Compare — measured one at a time, never concurrently</legend>
+      <label><input type="checkbox" name="backend" value="webgpu" checked> WebGPU</label>
+      <label><input type="checkbox" name="backend" value="webnn-gpu"> WebNN GPU</label>
+      <label><input type="checkbox" name="backend" value="webnn-npu"> WebNN NPU</label>
+      <label><input type="checkbox" name="backend" value="wasm"> WASM (CPU baseline)</label>
+    </fieldset>
+  </div>
+
+  <div class="demo-status" id="status"></div>
+
+  <div class="compare-grid" id="compare-grid"></div>
+</main>
+<script type="module" src="/src/demos/real-esrgan/main.ts"></script>
+</body>
+</html>

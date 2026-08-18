@@ -21,15 +21,20 @@ export interface DemoEntry {
   /** False until the demo's visual stage exists. Home page shows it as pending. */
   implemented: boolean;
   /**
-   * Caps input resolution when this demo runs in the side-by-side compare
-   * view with multiple backends live at once. `undefined` means no cap.
+   * NOT CURRENTLY CONSUMED BY ANY CODE. Left here as a documented future
+   * requirement, not a live setting — no stage reads this field.
    *
-   * Exists because the output readback (see runner/measure.ts) is timed
-   * deliberately, and its cost scales with output size: real-esrgan at 4x
-   * turns a 512px input into a 2048x2048 output per backend — ~16MB of
-   * readback each, ~64MB across four backends, on top of four resident
-   * compiled models. Uncapped, that is a plausible tab crash on a mid-range
-   * laptop, not just a slow number.
+   * Was meant to cap input resolution when a demo runs the side-by-side
+   * compare view, because the output readback (runner/measure.ts) is timed
+   * deliberately and its cost scales with output size: real-esrgan at 4x on
+   * an arbitrary-size photo could turn a 512px input into a 2048x2048
+   * output per backend. That concern only exists for the reference's
+   * full-image tiling pipeline (crop into overlapping model-input-sized
+   * tiles, upscale each, stitch back together) — real-esrgan here upscales
+   * exactly ONE fixed-size tile instead (see demos/real-esrgan/preprocess.ts's
+   * scope note), so there is no variable-size input to cap. Wire this in
+   * for real if/when arbitrary-image tiling is built; don't add fake
+   * enforcement now just to say the field is used.
    */
   maxCompareInput?: {width: number; height: number};
 }
@@ -79,13 +84,14 @@ export const DEMOS: readonly DemoEntry[] = [
   {
     slug: 'real-esrgan',
     title: 'Real-ESRGAN x4',
-    blurb: '4x image upscaling. Heaviest of the five in the compare view.',
+    blurb: '4x super-resolution upscaling, one tile. Heaviest of the five demos.',
     model: {
       url: 'https://huggingface.co/webnn/Real-ESRGAN-x4plus/resolve/main/tflite/model.tflite',
     },
     backends: BACKENDS,
-    implemented: false,
-    // 4x of this is already 1024x1024 per backend — see the field doc above.
+    implemented: true,
+    // Unused — see the field's doc comment above. Arbitrary-image tiling
+    // (what would make this field meaningful) wasn't built.
     maxCompareInput: {width: 256, height: 256},
   },
 ];

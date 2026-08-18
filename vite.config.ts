@@ -44,6 +44,7 @@ export default defineConfig({
         'selfie-multiclass': 'selfie-multiclass.html',
         mobilenetv2: 'mobilenetv2.html',
         'efficientvit-seg': 'efficientvit-seg.html',
+        'real-esrgan': 'real-esrgan.html',
       },
     },
     target: 'es2022',
