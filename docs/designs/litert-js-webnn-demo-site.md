@@ -6,6 +6,57 @@ Repo: ibelem/webnn-litert
 Status: APPROVED
 Mode: Builder
 
+## Build Status (as of 2026-08-18)
+
+All five demos from the original scope are built and pushed to `main`. This
+section is the current source of truth for what's done — the rest of the
+doc below is the historical decision record from the design session and
+the eng review; read it for *why*, not for current state.
+
+**Done:**
+- Runner (`src/runner/`): CDN loading with `&litertjs=` + semver validation,
+  metrics, receipts, console capture, timeout/abort, CDN retry+backoff,
+  HuggingFace mirror fallback (`hf-mirror.com`), one classic worker per demo.
+- Design system (`tokens.css`, `DESIGN.md`) and fonts, both in place.
+- `/debug` — the delegation-truth harness, main-thread, works as a control.
+- Compare view (`runner/compare-controller.ts`) — N backends, same input,
+  side by side, serial measurement, progressive reveal. Shared by four of
+  five demo pages; extracted after the third near-duplicate copy.
+- All five demos: `mobilenetv2`, `selfie-multiclass`, `efficientvit-seg`,
+  `depth-anything`, `real-esrgan`. Each ported preprocessing/postprocessing
+  from the vendored reference source, not guessed.
+- 39 unit tests, `npm run build` gate (typecheck + stylelint + tests + vite
+  build), verified repeatedly via a clean `npm ci` (not just a warm tree).
+
+**Scope decisions made during the build, each documented at its site:**
+- Chrome/Emscripten forced the worker to be a **classic** worker
+  (`?worker` + `worker.format:'iife'` in `vite.config.ts`), not a module
+  worker — LiteRT's WASM loader calls `importScripts()`, which module
+  workers reject. Caught as a real runtime bug, not anticipated in the
+  original design.
+- `selfie-multiclass` is a **webcam snapshot**, not the reference's
+  continuous `requestAnimationFrame` loop — see its `stage.ts`.
+- `real-esrgan` upscales **one tile**, not the reference's arbitrary-image
+  tiling pipeline — see its `preprocess.ts`. Consequence:
+  `DemoEntry.maxCompareInput` has no consumer; its doc comment says so.
+- Default backend is `webgpu` for now (`runner/types.ts`'s
+  `DEFAULT_BACKEND`), not WebNN NPU — set once WebNN delegation is broadly
+  confirmed working, not before.
+
+**Not yet done / genuinely open:**
+- **No live browser confirmation since the classic-worker fix.** Every demo
+  above is verified by typecheck + tests + production-bundle inspection,
+  not by loading the page in Chrome and looking at it. This is the actual
+  next step, not more building.
+- Delegation on real NPU hardware is confirmed ONLY for `mobilenetv2` on
+  `@litertjs/core@2.5.3` (M0 spike). The other four demos' delegation
+  status is unknown.
+- `depth-anything` was reprioritized to build first for exactly this
+  reason (int8, most likely to delegate) but was never re-tested after M0.
+- CEO/Design/DX reviews were never run — only the Eng Review (see the
+  GSTACK REVIEW REPORT below), which predates the compare view and all
+  five demos.
+
 ## Problem Statement
 
 There is no demo site for LiteRT.js on WebNN. Microsoft's `webnn-developer-preview`

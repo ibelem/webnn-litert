@@ -3,8 +3,15 @@
 A demo site for **LiteRT.js** running `.tflite` models in the browser on **WebGPU**,
 **WebNN GPU**, and **WebNN NPU** — with proof that the requested backend actually ran.
 
-Design doc: [`docs/designs/litert-js-webnn-demo-site.md`](docs/designs/litert-js-webnn-demo-site.md) (APPROVED).
+Design doc: [`docs/designs/litert-js-webnn-demo-site.md`](docs/designs/litert-js-webnn-demo-site.md) (APPROVED) —
+read its **Build Status** section first for current state before anything else in it.
 Model URLs: [`docs/model.md`](docs/model.md).
+
+**Current state:** all five demos built (`mobilenetv2`, `selfie-multiclass`,
+`efficientvit-seg`, `depth-anything`, `real-esrgan`), plus `/debug` and the compare view.
+**Not yet done: no live browser confirmation since the classic-worker fix** — every demo
+is verified by typecheck/tests/bundle inspection, not by actually loading the page.
+Do that before adding anything new.
 
 ## This is a demo site, not a benchmark
 
