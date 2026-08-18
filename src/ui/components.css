@@ -5,6 +5,53 @@
  * components exist to prevent. Tokens only, enforced by stylelint.
  */
 
+/* Site header with logo */
+.site-header {
+  padding: var(--space-2) var(--space-4);
+  border-bottom: var(--border-hairline) solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.logo-link {
+  display: flex;
+  align-items: center;
+  transition: opacity 0.2s ease;
+}
+
+.logo-link:hover {
+  opacity: 0.9;
+}
+
+.logo {
+  display: block;
+  height: auto;
+}
+
+/* Site footer */
+.site-footer {
+  margin-top: var(--space-4);
+  padding: var(--space-4) var(--space-4);
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.site-footer p {
+  font-size: var(--text-sm);
+  color: var(--color-fg-muted);
+  margin: 0;
+}
+
+.site-footer a {
+  color: var(--color-accent);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.site-footer a:hover {
+  text-decoration: underline;
+  color: var(--wn-pink);
+}
+
 .receipt-badge {
   display: inline-flex;
   flex-direction: column;
@@ -62,7 +109,7 @@
 /* Demo page chrome */
 
 .demo-wrap {
-  max-width: 56rem;
+  max-width: 68rem;
   margin: 0 auto;
   padding: var(--space-6) var(--space-4);
 }

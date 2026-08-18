@@ -303,3 +303,25 @@ pre {
     transition-duration: 0.01ms !important;
   }
 }
+
+.logo .c1, .logo .c2_a {
+    fill: var(--wn-navy);
+}
+
+.logo .w {
+    fill: var(--gray-000);
+}
+
+.logo .c2 {
+    stroke: var(--wn-navy);
+}
+
+.demo-wrap p a {
+  text-decoration: none;
+  color: var(--color-accent);
+}
+
+.demo-wrap p a:hover {
+  text-decoration: underline;
+  color: var(--wn-pink);
+}

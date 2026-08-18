@@ -7,6 +7,13 @@ import {DEMOS} from '../registry';
 const grid = document.getElementById('demo-grid');
 if (!grid) throw new Error('#demo-grid missing from index.html');
 
+// Update demo count
+const demoCount = document.getElementById('demo-count');
+if (demoCount) {
+  const implementedCount = DEMOS.filter(d => d.implemented).length;
+  demoCount.textContent = `${implementedCount} available`;
+}
+
 // Convention: a demo's page lives at `${slug}.html`, registered under that
 // same key in vite.config.ts's rollupOptions.input. Not stored on the
 // registry entry itself because it's a build-time routing fact, not data
