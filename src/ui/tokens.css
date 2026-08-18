@@ -84,6 +84,11 @@
  * ------------------------------------------------------------------------ */
 
 :root {
+  /* Tells the browser which native-control theme (checkbox, select, number
+   * input — this site uses all three) to draw. Without this, native
+   * controls stay light-themed even when our own dark tokens are active. */
+  color-scheme: light;
+
   --color-bg: var(--gray-000);
   --color-bg-subtle: var(--gray-050);
   --color-surface: var(--gray-000);
@@ -167,6 +172,8 @@
 /* Dark: system preference, unless explicitly opted into light. */
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
+    color-scheme: dark;
+
     --color-bg: var(--gray-950);
     --color-bg-subtle: var(--gray-900);
     --color-surface: var(--gray-900);
@@ -200,6 +207,8 @@
 
 /* Explicit toggle wins in both directions. */
 :root.dark {
+  color-scheme: dark;
+
   --color-bg: var(--gray-950);
   --color-bg-subtle: var(--gray-900);
   --color-surface: var(--gray-900);
