@@ -1,11 +1,11 @@
 import {DEFAULT_LITERT_VERSION} from '../../runner/loader';
 import {createCompareController} from '../../runner/compare-controller';
 import {DEFAULT_BACKEND} from '../../runner/types';
-import {MobilenetStage} from './stage';
+import {EfficientVitStage} from './stage';
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
-  if (!node) throw new Error(`#${id} missing from mobilenetv2.html`);
+  if (!node) throw new Error(`#${id} missing from efficientvit-seg.html`);
   return node as T;
 }
 
@@ -17,11 +17,7 @@ const controller = createCompareController({
   gridEl: el('compare-grid'),
   backendBoxes: [...document.querySelectorAll<HTMLInputElement>('input[name="backend"]')],
   litertVersion,
-  createStage: (canvas) => new MobilenetStage(canvas),
-  // Wider, shorter than the segmentation demos' canvases — this one holds
-  // 5 lines of text, not a square image.
-  canvasWidth: 384,
-  canvasHeight: 168,
+  createStage: (canvas) => new EfficientVitStage(canvas),
 });
 
 controller.applyUrlBackendSelection(DEFAULT_BACKEND);

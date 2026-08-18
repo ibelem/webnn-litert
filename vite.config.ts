@@ -43,6 +43,7 @@ export default defineConfig({
         'depth-anything': 'depth-anything.html',
         'selfie-multiclass': 'selfie-multiclass.html',
         mobilenetv2: 'mobilenetv2.html',
+        'efficientvit-seg': 'efficientvit-seg.html',
       },
     },
     target: 'es2022',

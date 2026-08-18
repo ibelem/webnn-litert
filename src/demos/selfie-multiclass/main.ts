@@ -1,9 +1,10 @@
 /**
- * Selfie-multiclass compare-view controller. Same pattern as
- * demos/depth-anything/main.ts — one card, one SelfieMulticlassStage
- * instance, per selected backend — except the input is a webcam snapshot
- * captured once by this controller and distributed to every card's stage,
- * rather than a static asset each stage fetches independently.
+ * Selfie-multiclass compare-view controller. Same one-card-per-backend shape
+ * as the other demos, but NOT built on runner/compare-controller.ts: this
+ * page gates on a webcam-capture button and distributes one captured frame
+ * to every card's stage via `stage.setFrame()` before running, which the
+ * shared factory has no hook for. See compare-controller.ts's own doc
+ * comment for why that hook wasn't added preemptively for one caller.
  */
 import {DEFAULT_LITERT_VERSION} from '../../runner/loader';
 import {BACKENDS, DEFAULT_BACKEND, isBackend, type Backend} from '../../runner/types';

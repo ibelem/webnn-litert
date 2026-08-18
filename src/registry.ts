@@ -64,7 +64,7 @@ export const DEMOS: readonly DemoEntry[] = [
       url: 'https://huggingface.co/webnn/efficientvit-seg-l2-ade20k-r512x512/resolve/main/tflite/model.tflite',
     },
     backends: BACKENDS,
-    implemented: false,
+    implemented: true,
   },
   {
     slug: 'depth-anything',
