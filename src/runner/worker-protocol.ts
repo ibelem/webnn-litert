@@ -31,6 +31,15 @@ export interface RunMessage {
    * know the target size ahead of compiling, so it must not pre-resize.
    */
   image: ImageBitmap;
+  /**
+   * Optional demo-specific static data preprocess/render need beyond the
+   * image itself — e.g. mobilenetv2's label list, which the worker cannot
+   * fetch on its own (a classic worker's bundled script is an IIFE, so it
+   * can't use top-level await, and threading a fetch through render()'s
+   * synchronous callback would require reworking measureBackend's hooks for
+   * one demo's needs). The main thread fetches it once, alongside the model.
+   */
+  extra?: unknown;
 }
 
 export type MainToWorkerMessage = InitMessage | RunMessage;

@@ -44,7 +44,7 @@ export const DEMOS: readonly DemoEntry[] = [
       labels: 'https://huggingface.co/webnn/torchvision-mobilenet-v2/resolve/main/tflite/imagenet_labels.txt',
     },
     backends: BACKENDS,
-    implemented: false,
+    implemented: true,
   },
   {
     slug: 'selfie-multiclass',

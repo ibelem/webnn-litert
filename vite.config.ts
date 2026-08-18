@@ -42,6 +42,7 @@ export default defineConfig({
         debug: 'debug.html',
         'depth-anything': 'depth-anything.html',
         'selfie-multiclass': 'selfie-multiclass.html',
+        mobilenetv2: 'mobilenetv2.html',
       },
     },
     target: 'es2022',

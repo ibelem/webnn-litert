@@ -34,15 +34,16 @@ export interface DemoWorkerHandler {
    * an in-worker `OffscreenCanvas`, rather than assuming a fixed size.
    */
   preprocess(
-      mod: LiteRt, details: readonly TensorDetails[],
-      image: ImageBitmap): Record<string, InstanceType<LiteRt['Tensor']>>;
+      mod: LiteRt, details: readonly TensorDetails[], image: ImageBitmap,
+      extra?: unknown): Record<string, InstanceType<LiteRt['Tensor']>>;
   /** Draws the final iteration's output directly onto the OffscreenCanvas
    *  context this worker owns. `data` values are already-read TypedArrays —
    *  no further tensor access needed or safe (the tensors are deleted right
-   *  after this call returns). */
+   *  after this call returns). `extra` is whatever RunMessage.extra carried
+   *  (e.g. mobilenetv2's label list) — most demos ignore it. */
   render(
       ctx: OffscreenCanvasRenderingContext2D, outputDetails: readonly TensorDetails[],
-      data: OutputData): void;
+      data: OutputData, extra?: unknown): void;
 }
 
 /**
@@ -88,12 +89,12 @@ export function runDemoWorker(handler: DemoWorkerHandler): void {
           msg.warmupRuns,
           {
             buildInputs: (mod, details) => {
-              const inputs = handler.preprocess(mod, details, msg.image);
+              const inputs = handler.preprocess(mod, details, msg.image, msg.extra);
               msg.image.close(); // consumed once; free its backing memory promptly
               return inputs;
             },
             onFinalOutput: (outputDetails, data) => {
-              handler.render(activeCtx, outputDetails, data);
+              handler.render(activeCtx, outputDetails, data, msg.extra);
             },
           });
       post({type: 'record', requestId: msg.requestId, record});

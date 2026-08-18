@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MobileNetV2 — LiteRT.js on WebNN</title>
+<meta name="description"
+      content="ImageNet classification running on WebGPU, WebNN GPU and WebNN NPU via LiteRT.js.">
+<link rel="stylesheet" href="/src/ui/tokens.css">
+<link rel="stylesheet" href="/src/ui/components.css">
+</head>
+<body>
+<main class="demo-wrap">
+  <p><a href="/">&larr; all demos</a></p>
+  <h1>MobileNetV2</h1>
+  <p style="color: var(--color-fg-muted); max-width: 40rem;">
+    ImageNet classification, top-5. Confirmed fully delegated to WebNN NPU during the
+    project's M0 spike. Sample image:
+    <a href="https://commons.wikimedia.org/wiki/File:Welsh_Springer_Spaniel.jpg">Wikimedia
+    Commons</a>.
+  </p>
+
+  <div class="demo-controls">
+    <fieldset>
+      <legend>Compare — measured one at a time, never concurrently</legend>
+      <label><input type="checkbox" name="backend" value="webgpu" checked> WebGPU</label>
+      <label><input type="checkbox" name="backend" value="webnn-gpu"> WebNN GPU</label>
+      <label><input type="checkbox" name="backend" value="webnn-npu"> WebNN NPU</label>
+      <label><input type="checkbox" name="backend" value="wasm"> WASM (CPU baseline)</label>
+    </fieldset>
+  </div>
+
+  <div class="demo-status" id="status"></div>
+
+  <div class="compare-grid" id="compare-grid"></div>
+</main>
+<script type="module" src="/src/demos/mobilenetv2/main.ts"></script>
+</body>
+</html>
