@@ -349,6 +349,34 @@
   border-color: var(--color-accent);
 }
 
+/* LiteRT version dropdown */
+.litert-version-select {
+  width: 100%;
+  padding: var(--space-2);
+  background: var(--color-surface);
+  border: var(--border-hairline) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--color-fg);
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.litert-version-select:hover {
+  border-color: var(--color-accent);
+}
+
+.litert-version-select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-alpha);
+}
+
+.litert-version-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .demo-status {
   font-size: var(--text-sm);
   color: var(--color-fg-muted);

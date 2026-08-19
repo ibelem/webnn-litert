@@ -1,6 +1,7 @@
 /**
  * Inference count control handler for demo pages.
  * Allows users to select how many inferences to run (1, 20, 50, 100, 1000).
+ * Supports URL parameter: ?inference=N
  */
 
 export function setupInferenceCount(): void {
@@ -13,11 +14,24 @@ export function setupInferenceCount(): void {
     return;
   }
 
+  // Initialize from URL parameter if present
+  const params = new URLSearchParams(location.search);
+  const urlInference = params.get('inference');
+  if (urlInference) {
+    const value = parseInt(urlInference, 10);
+    if (!isNaN(value) && value >= 1 && value <= 1000) {
+      slider.value = value.toString();
+      display.textContent = value.toString();
+      updateActivePreset(value);
+    }
+  }
+
   // Update display when slider changes
   slider.addEventListener('input', () => {
     const value = parseInt(slider.value, 10);
     display.textContent = value.toString();
     updateActivePreset(value);
+    updateUrlParameter(value);
     dispatchInferenceCountEvent(value);
   });
 
@@ -28,12 +42,20 @@ export function setupInferenceCount(): void {
       slider.value = value.toString();
       display.textContent = value.toString();
       updateActivePreset(value);
+      updateUrlParameter(value);
       dispatchInferenceCountEvent(value);
     });
   });
 
   // Initialize active state
   updateActivePreset(parseInt(slider.value, 10));
+}
+
+function updateUrlParameter(value: number): void {
+  const params = new URLSearchParams(location.search);
+  params.set('inference', value.toString());
+  const newUrl = `${location.pathname}?${params.toString()}`;
+  history.replaceState({}, '', newUrl);
 }
 
 function updateActivePreset(value: number): void {

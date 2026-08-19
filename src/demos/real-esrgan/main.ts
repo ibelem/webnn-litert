@@ -2,6 +2,8 @@ import {DEFAULT_LITERT_VERSION} from '../../runner/loader';
 import {createCompareController} from '../../runner/compare-controller';
 import {DEFAULT_BACKEND} from '../../runner/types';
 import {RealEsrganStage} from './stage';
+import {setupLiteRtVersionDropdown} from '../../ui/litert-version';
+import {setupInferenceCount} from '../../ui/inference-count';
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
@@ -28,6 +30,12 @@ const controller = createCompareController({
 });
 
 controller.applyUrlBackendSelection(DEFAULT_BACKEND);
+
+// Setup LiteRT version dropdown
+setupLiteRtVersionDropdown();
+
+// Setup inference count control
+setupInferenceCount();
 
 for (const box of document.querySelectorAll<HTMLInputElement>('input[name="backend"]')) {
   box.addEventListener('change', () => void controller.runAll());

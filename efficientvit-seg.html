@@ -50,6 +50,12 @@
             </div>
           </div>
         </fieldset>
+        <fieldset>
+          <legend>LiteRT.js Version</legend>
+          <select id="litert-version" class="litert-version-select">
+            <option value="">Loading versions...</option>
+          </select>
+        </fieldset>
       </div>
       <div class="sample-image">
         <img src="images/sample-dog.jpg" alt="Sample image" id="demo-image"/>
@@ -67,8 +73,9 @@
     </aside>
 
     <div class="demo-content">
-      <div class="demo-status" id="status"></div>
       <div class="compare-grid" id="compare-grid"></div>
+      <div class="log-status" id="log-status"></div>
+      <div class="demo-status" id="status"></div>
     </div>
   </div>
 </main>

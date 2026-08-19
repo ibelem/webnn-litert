@@ -74,6 +74,14 @@ if (urlBackends?.length) {
   }
 }
 
+const urlInference = params.get('inference');
+if (urlInference) {
+  const value = parseInt(urlInference, 10);
+  if (!isNaN(value) && value >= 1 && value <= 200) {
+    itersInput.value = value.toString();
+  }
+}
+
 function backendCheckboxes(): HTMLInputElement[] {
   return [...backendBoxes.querySelectorAll<HTMLInputElement>('input[data-role="backend"]')];
 }
@@ -234,7 +242,7 @@ async function run(): Promise<void> {
       // Full record to the console — everything the page does not show.
       console.log(backend, record);
     }
-    statusEl.textContent = `done · ${demo.title} on @litertjs/core@${version}`;
+    statusEl.textContent = `done · ${demo.title} on @litertjs/core@${version} · ${warmupRuns} warmup runs · ${iterations} inference runs`;
   } catch (e) {
     // A programmer error (bad argument, null dereference, out-of-range index)
     // is a real bug and must not be swallowed as "the harness failed" — that

@@ -36,13 +36,34 @@
           <label><input type="checkbox" name="backend" value="webnn-npu"> WebNN NPU</label>
           <label><input type="checkbox" name="backend" value="wasm"> WASM (CPU baseline)</label>
         </fieldset>
+        <fieldset>
+          <legend>Inference Count</legend>
+          <div class="inference-count-control">
+            <input type="range" id="inference-count" min="1" max="1000" step="1" value="1" class="inference-count-slider">
+            <div class="inference-count-value"><span id="inference-count-display">1</span> inference</div>
+            <div class="inference-count-presets">
+              <button type="button" class="inference-count-preset" data-value="1">1</button>
+              <button type="button" class="inference-count-preset" data-value="20">20</button>
+              <button type="button" class="inference-count-preset" data-value="50">50</button>
+              <button type="button" class="inference-count-preset" data-value="100">100</button>
+              <button type="button" class="inference-count-preset" data-value="1000">1000</button>
+            </div>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>LiteRT.js Version</legend>
+          <select id="litert-version" class="litert-version-select">
+            <option value="">Loading versions...</option>
+          </select>
+        </fieldset>
         <button class="run" id="capture">Take snapshot &amp; run</button>
       </div>
     </aside>
 
     <div class="demo-content">
-      <div class="demo-status" id="status"></div>
       <div class="compare-grid" id="compare-grid"></div>
+      <div class="log-status" id="log-status"></div>
+      <div class="demo-status" id="status"></div>
     </div>
   </div>
 </main>

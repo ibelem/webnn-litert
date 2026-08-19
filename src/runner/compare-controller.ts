@@ -62,6 +62,32 @@ export function createCompareController(opts: CompareControllerOptions) {
 
   const cards = new Map<Backend, Card>();
   let generation = 0;
+  let currentIterations = iterations;
+  let currentLitertVersion = litertVersion;
+
+  // Listen for inference count changes from the slider
+  document.addEventListener('inferenceCountChanged', (e: Event) => {
+    const customEvent = e as CustomEvent<{count: number}>;
+    currentIterations = customEvent.detail.count;
+    // Re-run with new iteration count
+    void runAll();
+  });
+
+  // Listen for LiteRT version changes from the dropdown
+  document.addEventListener('litertVersionChanged', (e: Event) => {
+    const customEvent = e as CustomEvent<{version: string}>;
+    currentLitertVersion = customEvent.detail.version;
+    // Re-run with new version
+    void runAll();
+  });
+
+  // Listen for backend checkbox changes and update URL
+  backendBoxes.forEach(box => {
+    box.addEventListener('change', () => {
+      updateBackendUrlParameter();
+      void runAll();
+    });
+  });
 
   function createCard(backend: Backend): Card {
     const wrap = document.createElement('div');
@@ -140,8 +166,8 @@ export function createCompareController(opts: CompareControllerOptions) {
       try {
         const record = await card.stage.run({
           backend,
-          litertVersion,
-          iterations,
+          litertVersion: currentLitertVersion,
+          iterations: currentIterations,
           warmupRuns,
           onProgress: (message) => {
             if (myGeneration === generation) statusEl.textContent = `${backend}: ${message}`;
@@ -171,7 +197,7 @@ export function createCompareController(opts: CompareControllerOptions) {
     }
 
     if (myGeneration === generation) {
-      statusEl.textContent = `done · measured sequentially on @litertjs/core@${litertVersion}`;
+      statusEl.textContent = `done · measured sequentially on @litertjs/core@${currentLitertVersion} · ${warmupRuns} warmup runs · ${currentIterations} inference runs`;
     }
   }
 
@@ -183,6 +209,20 @@ export function createCompareController(opts: CompareControllerOptions) {
     } else {
       for (const box of backendBoxes) box.checked = box.value === defaultBackend;
     }
+  }
+
+  function updateBackendUrlParameter(): void {
+    const selected = selectedBackends();
+    const params = new URLSearchParams(location.search);
+    
+    if (selected.length > 0) {
+      params.set('backend', selected.join(','));
+    } else {
+      params.delete('backend');
+    }
+    
+    const newUrl = `${location.pathname}?${params.toString()}`;
+    history.replaceState({}, '', newUrl);
   }
 
   function dispose(): void {

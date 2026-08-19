@@ -11,6 +11,8 @@ import {BACKENDS, DEFAULT_BACKEND, isBackend, type Backend} from '../../runner/t
 import {renderMetricRow} from '../../ui/metric-row';
 import {renderReceiptBadge} from '../../ui/receipt-badge';
 import {captureOneFrame, SelfieMulticlassStage} from './stage';
+import {setupLiteRtVersionDropdown} from '../../ui/litert-version';
+import {setupInferenceCount} from '../../ui/inference-count';
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
@@ -42,6 +44,20 @@ interface Card {
 const cards = new Map<Backend, Card>();
 let lastFrame: ImageBitmap | null = null;
 let generation = 0;
+let currentIterations = 10;
+let currentLitertVersion = litertVersion;
+
+// Listen for inference count changes from the slider
+document.addEventListener('inferenceCountChanged', (e: Event) => {
+  const customEvent = e as CustomEvent<{count: number}>;
+  currentIterations = customEvent.detail.count;
+});
+
+// Listen for LiteRT version changes from the dropdown
+document.addEventListener('litertVersionChanged', (e: Event) => {
+  const customEvent = e as CustomEvent<{version: string}>;
+  currentLitertVersion = customEvent.detail.version;
+});
 
 function createCard(backend: Backend): Card {
   const wrap = document.createElement('div');
@@ -118,8 +134,8 @@ async function runAll(): Promise<void> {
       await card.stage.setFrame(lastFrame);
       const record = await card.stage.run({
         backend,
-        litertVersion,
-        iterations: 10,
+        litertVersion: currentLitertVersion,
+        iterations: currentIterations,
         warmupRuns: 3,
         onProgress: (message) => {
           if (myGeneration === generation) statusEl.textContent = `${backend}: ${message}`;
@@ -147,7 +163,7 @@ async function runAll(): Promise<void> {
   }
 
   if (myGeneration === generation) {
-    statusEl.textContent = `done · measured sequentially on @litertjs/core@${litertVersion}`;
+    statusEl.textContent = `done · measured sequentially on @litertjs/core@${currentLitertVersion} · 3 warmup runs · ${currentIterations} inference runs`;
   }
 }
 
@@ -168,12 +184,33 @@ captureButton.addEventListener('click', () => {
   })();
 });
 
+function updateBackendUrlParameter(): void {
+  const selected = selectedBackends();
+  const params = new URLSearchParams(location.search);
+
+  if (selected.length > 0) {
+    params.set('backend', selected.join(','));
+  } else {
+    params.delete('backend');
+  }
+
+  const newUrl = `${location.pathname}?${params.toString()}`;
+  history.replaceState({}, '', newUrl);
+}
+
 for (const box of backendBoxes) {
   box.addEventListener('change', () => {
+    updateBackendUrlParameter();
     reconcileCards();
     void runAll(); // no-op if nothing captured yet
   });
 }
+
+// Setup LiteRT version dropdown
+setupLiteRtVersionDropdown();
+
+// Setup inference count control
+setupInferenceCount();
 
 // Reconcile cards on load so the grid shows the default selection's empty
 // cards immediately, even before the first capture.
