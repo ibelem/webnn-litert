@@ -37,6 +37,20 @@
           <label><input type="checkbox" name="backend" value="webnn-npu"> WebNN NPU</label>
           <label><input type="checkbox" name="backend" value="wasm"> WASM (CPU baseline)</label>
         </fieldset>
+        <fieldset>
+          <legend>Inference Count</legend>
+          <div class="inference-count-control">
+            <input type="range" id="inference-count" min="1" max="1000" step="1" value="1" class="inference-count-slider">
+            <div class="inference-count-value"><span id="inference-count-display">1</span> inference</div>
+            <div class="inference-count-presets">
+              <button type="button" class="inference-count-preset" data-value="1">1</button>
+              <button type="button" class="inference-count-preset" data-value="20">20</button>
+              <button type="button" class="inference-count-preset" data-value="50">50</button>
+              <button type="button" class="inference-count-preset" data-value="100">100</button>
+              <button type="button" class="inference-count-preset" data-value="1000">1000</button>
+            </div>
+          </div>
+        </fieldset>
       </div>
       <div class="sample-image">
         <img src="images/sample-dog.jpg" alt="Sample image" id="demo-image"/>
@@ -67,7 +81,9 @@
 <script type="module" src="/src/demos/depth-anything/main.ts"></script>
 <script type="module">
   import { setupImageUpload } from '/src/ui/image-upload.js';
+  import { setupInferenceCount } from '/src/ui/inference-count.js';
   setupImageUpload();
+  setupInferenceCount();
 </script>
 </body>
 </html>

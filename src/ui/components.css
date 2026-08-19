@@ -295,6 +295,60 @@
   padding: var(--space-1) 0;
 }
 
+/* Inference count control */
+.inference-count-control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.inference-count-slider {
+  width: 100%;
+  cursor: pointer;
+}
+
+.inference-count-value {
+  font-size: var(--text-sm);
+  color: var(--color-fg);
+  text-align: center;
+}
+
+.inference-count-value span {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-medium);
+  color: var(--color-accent);
+}
+
+.inference-count-presets {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.inference-count-preset {
+  flex: 1;
+  min-width: calc(20% - var(--space-1));
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-surface);
+  border: var(--border-hairline) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--color-fg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.inference-count-preset:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.inference-count-preset.active {
+  background: var(--color-accent);
+  color: var(--color-surface);
+  border-color: var(--color-accent);
+}
+
 .demo-status {
   font-size: var(--text-sm);
   color: var(--color-fg-muted);
