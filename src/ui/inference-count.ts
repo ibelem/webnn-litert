@@ -6,13 +6,17 @@
 
 export function setupInferenceCount(): void {
   const slider = document.getElementById('inference-count') as HTMLInputElement;
-  const display = document.getElementById('inference-count-display') as HTMLElement;
+  const controlDiv = document.querySelector('.inference-count-control');
   const presets = document.querySelectorAll('.inference-count-preset');
 
-  if (!slider || !display) {
+  if (!slider || !controlDiv) {
     console.warn('Inference count elements not found');
     return;
   }
+
+  // Find the legend element within the parent fieldset
+  const fieldset = controlDiv.closest('fieldset');
+  const legend = fieldset?.querySelector('legend');
 
   // Initialize from URL parameter if present
   const params = new URLSearchParams(location.search);
@@ -21,15 +25,15 @@ export function setupInferenceCount(): void {
     const value = parseInt(urlInference, 10);
     if (!isNaN(value) && value >= 1 && value <= 1000) {
       slider.value = value.toString();
-      display.textContent = value.toString();
+      updateLegend(value);
       updateActivePreset(value);
     }
   }
 
-  // Update display when slider changes
+  // Update legend when slider changes
   slider.addEventListener('input', () => {
     const value = parseInt(slider.value, 10);
-    display.textContent = value.toString();
+    updateLegend(value);
     updateActivePreset(value);
     updateUrlParameter(value);
     dispatchInferenceCountEvent(value);
@@ -40,15 +44,22 @@ export function setupInferenceCount(): void {
     preset.addEventListener('click', () => {
       const value = parseInt(preset.getAttribute('data-value') || '1', 10);
       slider.value = value.toString();
-      display.textContent = value.toString();
+      updateLegend(value);
       updateActivePreset(value);
       updateUrlParameter(value);
       dispatchInferenceCountEvent(value);
     });
   });
 
-  // Initialize active state
+  // Initialize legend and active state
+  updateLegend(parseInt(slider.value, 10));
   updateActivePreset(parseInt(slider.value, 10));
+
+  function updateLegend(value: number): void {
+    if (legend) {
+      legend.textContent = `Inference Count (${value})`;
+    }
+  }
 }
 
 function updateUrlParameter(value: number): void {
