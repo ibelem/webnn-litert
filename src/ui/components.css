@@ -101,6 +101,7 @@
 /* Classification results for MobileNetV2 DOM rendering */
 .classification-results {
   font-size: small;
+  padding: 0 var(--space-2);
 }
 
 .classification-row {
@@ -125,14 +126,14 @@
 
 .classification-label {
   flex: 1;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   color: var(--color-fg);
   font-weight: var(--weight-medium);
 }
 
 .classification-score {
   font-family: var(--font-mono);
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   color: var(--color-fg-muted);
   font-weight: var(--weight-medium);
 }
@@ -218,7 +219,7 @@
 .compare-card__stage {
   background: var(--color-bg-subtle);
   border-radius: var(--radius);
-  padding: var(--space-2);
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
