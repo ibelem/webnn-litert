@@ -121,8 +121,8 @@ export class MobilenetDomStage {
       const onMessage = (event: MessageEvent<WorkerToMainMessage>): void => {
         const msg = event.data;
         if (msg.requestId !== requestId) return;
-        this.worker.removeEventListener('message', onMessage);
         if (!isCurrent()) {
+          this.worker.removeEventListener('message', onMessage);
           reject(abortedError());
           return;
         }
@@ -132,11 +132,13 @@ export class MobilenetDomStage {
             this.renderResults(this.pendingRenderData);
             this.pendingRenderData = null;
           }
+          this.worker.removeEventListener('message', onMessage);
           resolve(msg.record);
         } else if (msg.type === 'render-data') {
           // Store render data for when record arrives
           this.pendingRenderData = msg;
         } else if (msg.type === 'worker-error') {
+          this.worker.removeEventListener('message', onMessage);
           reject(new Error(msg.message));
         }
       };
