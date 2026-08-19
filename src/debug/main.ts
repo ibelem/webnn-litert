@@ -234,7 +234,7 @@ async function run(): Promise<void> {
       // Full record to the console — everything the page does not show.
       console.log(backend, record);
     }
-    statusEl.textContent = `done — ${demo.title} on @litertjs/core@${version}`;
+    statusEl.textContent = `done · ${demo.title} on @litertjs/core@${version}`;
   } catch (e) {
     // A programmer error (bad argument, null dereference, out-of-range index)
     // is a real bug and must not be swallowed as "the harness failed" — that

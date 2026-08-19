@@ -147,7 +147,7 @@ async function runAll(): Promise<void> {
   }
 
   if (myGeneration === generation) {
-    statusEl.textContent = `done — measured sequentially on @litertjs/core@${litertVersion}`;
+    statusEl.textContent = `done · measured sequentially on @litertjs/core@${litertVersion}`;
   }
 }
 
