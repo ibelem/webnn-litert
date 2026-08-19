@@ -70,8 +70,10 @@ export class MobilenetDomStage {
    */
   private renderResults(data: RenderDataMessage): void {
     const labels = data.extra as MobilenetLabels;
-    const output = data.data['MobilenetV2/Predictions/Reshape_1'];
-    if (!output) throw new Error('missing output tensor');
+    const outputName = data.outputDetails[0]?.name;
+    if (!outputName) throw new Error('mobilenetv2: model declares no outputs');
+    const output = data.data[outputName];
+    if (!output) throw new Error(`mobilenetv2: no output data for "${outputName}"`);
 
     // Get top 5 predictions
     const scores = Array.from(output).map((score, i) => ({score, label: labels.labels[i]}));
