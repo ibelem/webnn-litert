@@ -118,7 +118,6 @@
 
 .classification-rank {
   font-family: var(--font-mono);
-  font-weight: var(--weight-bold);
   color: var(--color-accent);
   min-width: var(--space-4);
   text-align: center;
@@ -128,14 +127,12 @@
   flex: 1;
   font-size: var(--text-sm);
   color: var(--color-fg);
-  font-weight: var(--weight-medium);
 }
 
 .classification-score {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   color: var(--color-fg-muted);
-  font-weight: var(--weight-medium);
 }
 
 .metric-row__label {
