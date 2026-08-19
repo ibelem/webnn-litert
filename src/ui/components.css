@@ -101,14 +101,13 @@
 /* Classification results for MobileNetV2 DOM rendering */
 .classification-results {
   font-size: small;
-  padding: 0 var(--space-2);
+  padding: 0;
 }
 
 .classification-row {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) 0;
+  padding: var(--space-1) 0;
   border-bottom: var(--border-hairline) solid var(--color-border);
 }
 
@@ -121,6 +120,7 @@
   color: var(--color-accent);
   min-width: var(--space-4);
   text-align: center;
+  margin-right: var(--space-2);
 }
 
 .classification-label {
@@ -133,6 +133,7 @@
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   color: var(--color-fg-muted);
+  margin-left: var(--space-2);
 }
 
 .metric-row__label {
@@ -333,7 +334,7 @@
   padding: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
 }
 
 .compare-card__stage canvas {
