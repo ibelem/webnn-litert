@@ -17,28 +17,34 @@
 </header>
 
 <main class="demo-wrap">
-  <p><a href="/">&larr; all demos</a></p>
-  <h1>Selfie multiclass segmentation</h1>
-  <p class="demo-lede">
-    One webcam snapshot, segmented into hair / body skin / face skin / clothes /
-    accessories. A single frame, not a live feed — the camera is released the instant
-    the snapshot is taken.
-  </p>
-
-  <div class="demo-controls">
-    <fieldset>
-      <legend>Compare — measured one at a time, never concurrently</legend>
-      <label><input type="checkbox" name="backend" value="webgpu" checked> WebGPU</label>
-      <label><input type="checkbox" name="backend" value="webnn-gpu"> WebNN GPU</label>
-      <label><input type="checkbox" name="backend" value="webnn-npu"> WebNN NPU</label>
-      <label><input type="checkbox" name="backend" value="wasm"> WASM (CPU baseline)</label>
-    </fieldset>
-    <button class="run" id="capture">Take snapshot &amp; run</button>
+  <div class="demo-header">
+    <h1>Selfie Multiclass Segmentation</h1>
+    <p class="demo-lede">
+      One webcam snapshot, segmented into hair / body skin / face skin / clothes /
+      accessories. A single frame, not a live feed — the camera is released the instant
+      the snapshot is taken.
+    </p>
   </div>
 
-  <div class="demo-status" id="status"></div>
+  <div class="demo-layout">
+    <aside class="demo-sidebar">
+      <div class="demo-controls">
+        <fieldset>
+          <legend title="Compare — measured one at a time, never concurrently">Backend</legend>
+          <label><input type="checkbox" name="backend" value="webgpu" checked> WebGPU</label>
+          <label><input type="checkbox" name="backend" value="webnn-gpu"> WebNN GPU</label>
+          <label><input type="checkbox" name="backend" value="webnn-npu"> WebNN NPU</label>
+          <label><input type="checkbox" name="backend" value="wasm"> WASM (CPU baseline)</label>
+        </fieldset>
+        <button class="run" id="capture">Take snapshot &amp; run</button>
+      </div>
+    </aside>
 
-  <div class="compare-grid" id="compare-grid"></div>
+    <div class="demo-content">
+      <div class="demo-status" id="status"></div>
+      <div class="compare-grid" id="compare-grid"></div>
+    </div>
+  </div>
 </main>
 
 <footer class="site-footer">

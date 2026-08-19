@@ -43,7 +43,7 @@ export const DEMOS: readonly DemoEntry[] = [
   {
     slug: 'mobilenetv2',
     title: 'MobileNetV2',
-    blurb: 'Image classification. Confirmed fully delegated to WebNN NPU on 2.5.3.',
+    blurb: 'Image classification, top-5.',
     model: {
       url: 'https://huggingface.co/webnn/torchvision-mobilenet-v2/resolve/main/tflite/model.tflite',
       labels: 'https://huggingface.co/webnn/torchvision-mobilenet-v2/resolve/main/tflite/imagenet_labels.txt',
@@ -53,7 +53,7 @@ export const DEMOS: readonly DemoEntry[] = [
   },
   {
     slug: 'selfie-multiclass',
-    title: 'Selfie segmentation',
+    title: 'Selfie Segmentation',
     blurb: 'One webcam snapshot, multiclass segmentation at 256x256.',
     model: {
       url: 'https://huggingface.co/webnn/selfie-multiclass-256x256/resolve/main/tflite/model.tflite',
@@ -63,7 +63,7 @@ export const DEMOS: readonly DemoEntry[] = [
   },
   {
     slug: 'efficientvit-seg',
-    title: 'EfficientViT segmentation',
+    title: 'EfficientViT Segmentation',
     blurb: 'ADE20K scene segmentation at 512x512.',
     model: {
       url: 'https://huggingface.co/webnn/efficientvit-seg-l2-ade20k-r512x512/resolve/main/tflite/model.tflite',
@@ -84,7 +84,7 @@ export const DEMOS: readonly DemoEntry[] = [
   {
     slug: 'real-esrgan',
     title: 'Real-ESRGAN x4',
-    blurb: '4x super-resolution upscaling, one tile. Heaviest of the five demos.',
+    blurb: '4x super-resolution upscaling, one tile.',
     model: {
       url: 'https://huggingface.co/webnn/Real-ESRGAN-x4plus/resolve/main/tflite/model.tflite',
     },

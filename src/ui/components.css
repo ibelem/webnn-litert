@@ -146,16 +146,130 @@
 /* Demo page chrome */
 
 .demo-wrap {
-  max-width: 68rem;
   margin: 0 auto;
-  padding: var(--space-6) var(--space-4);
+  padding: var(--space-2) var(--space-4);
+}
+
+/* Demo header section with title and description - full width */
+.demo-header {
+  margin-bottom: var(--space-4);
+  padding: 0 var(--space-4);
+}
+
+.demo-header h1 {
+  margin: var(--space-2) 0 0 0;
+  font-size: var(--text-xl);
+}
+
+.demo-header p:first-child {
+  margin-bottom: var(--space-2);
+}
+
+.demo-header p:first-child a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.demo-header p:first-child a:hover {
+  text-decoration: underline;
 }
 
 /* Was a hand-written inline style duplicated across all five demo pages —
  * the same drift the compare-controller extraction prevented one layer up. */
 .demo-lede {
   color: var(--color-fg-muted);
-  max-width: 40rem;
+  margin: 0;
+}
+
+/* Demo layout with sidebar */
+.demo-layout {
+  display: grid;
+  grid-template-columns: 16rem 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+/* Sidebar with controls */
+.demo-sidebar {
+  position: sticky;
+  top: var(--space-4);
+}
+
+/* Main content area */
+.demo-content {
+  min-width: 0;
+}
+
+.demo-sidebar .sample-image {
+  font-size: var(--text-sm);
+  color: var(--color-fg-muted);
+  margin-top: var(--space-4);
+}
+
+.demo-sidebar .sample-image img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
+.demo-sidebar .sample-image a {
+  color: var(--wn-navy);
+  text-decoration: none;
+}
+
+.demo-sidebar .sample-image a:hover {
+  text-decoration: underline;
+  color: var(--wn-pink);
+}
+
+/* Image upload section */
+.image-upload {
+  padding-top: var(--space-3);
+}
+
+.image-upload__label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  margin-bottom: var(--space-2);
+  color: var(--color-fg);
+}
+
+.image-upload__input {
+  display: none;
+}
+
+.image-upload__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  border: var(--border-hairline) solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  color: var(--color-fg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.image-upload__button:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* Responsive: stack sidebar on mobile */
+@media (max-width: 48rem) {
+  .demo-layout {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+
+  .demo-sidebar {
+    position: static;
+  }
 }
 
 .demo-controls fieldset {
@@ -199,7 +313,7 @@
 
 .compare-card {
   border: var(--border-hairline) solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius);
   padding: var(--space-3);
   display: flex;
   flex-direction: column;
