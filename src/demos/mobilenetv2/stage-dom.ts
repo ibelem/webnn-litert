@@ -4,7 +4,6 @@ import {formatProgress, readWithProgress} from '../../runner/progress-fetch';
 import {MeasurementScheduler} from '../../runner/scheduler';
 import type {Backend, RunRecord} from '../../runner/types';
 import type {MainToWorkerMessage, WorkerToMainMessage, RenderDataMessage} from '../../runner/worker-protocol';
-import type {MobilenetLabels} from './render';
 import MobilenetWorker from './worker-entry.ts?worker';
 
 const found = findDemo('mobilenetv2');
@@ -69,14 +68,14 @@ export class MobilenetDomStage {
    * Render classification results as HTML elements.
    */
   private renderResults(data: RenderDataMessage): void {
-    const labels = data.extra as MobilenetLabels;
+    const labels = data.extra as readonly string[];
     const outputName = data.outputDetails[0]?.name;
     if (!outputName) throw new Error('mobilenetv2: model declares no outputs');
     const output = data.data[outputName];
     if (!output) throw new Error(`mobilenetv2: no output data for "${outputName}"`);
 
     // Get top 5 predictions
-    const scores = Array.from(output).map((score, i) => ({score, label: labels.labels[i]}));
+    const scores = Array.from(output).map((score, i) => ({score, label: labels[i] ?? `class ${i}`}));
     scores.sort((a, b) => b.score - a.score);
     const top5 = scores.slice(0, 5);
 
