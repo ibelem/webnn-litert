@@ -19,7 +19,7 @@ const DELEGATION_TEXT: Record<Delegation, string> = {
 };
 
 export function renderReceiptBadge(
-    container: HTMLElement, delegation: Delegation, warnings: readonly string[]): void {
+    container: HTMLElement, delegation: Delegation, warnings: readonly string[], error?: string): void {
   container.replaceChildren();
   container.className = `receipt-badge receipt-badge--${delegation}`;
 
@@ -34,6 +34,14 @@ export function renderReceiptBadge(
     const detail = document.createElement('span');
     detail.className = 'receipt-badge__detail';
     detail.textContent = warnings[0] ?? '';
+    container.append(detail);
+  }
+
+  // Show actual error message when delegation failed
+  if (delegation === 'failed' && error) {
+    const detail = document.createElement('span');
+    detail.className = 'receipt-badge__detail';
+    detail.textContent = error;
     container.append(detail);
   }
 }

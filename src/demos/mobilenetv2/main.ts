@@ -19,6 +19,7 @@ const controller = createCompareController({
   gridEl: el('compare-grid'),
   backendBoxes: [...document.querySelectorAll<HTMLInputElement>('input[name="backend"]')],
   litertVersion,
+  logStatusEl: el('log-status'),
   createStage: (_canvas) => {
     const container = document.createElement('div');
     container.className = 'classification-container';

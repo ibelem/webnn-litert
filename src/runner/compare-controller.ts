@@ -1,5 +1,6 @@
 import {renderMetricRow} from '../ui/metric-row';
 import {renderReceiptBadge} from '../ui/receipt-badge';
+import {updateLogStatus, type BackendInferenceTimes} from '../ui/log-status';
 import {BACKENDS, isBackend, type Backend} from './types';
 import type {RunRecord} from './types';
 
@@ -21,6 +22,7 @@ export interface CompareControllerOptions {
   gridEl: HTMLElement;
   backendBoxes: HTMLInputElement[];
   litertVersion: string;
+  logStatusEl?: HTMLElement;
   /** Creates one demo's Stage bound to a fresh canvas or DOM container.
    *  Called once per backend selected — see element-identity rule in CLAUDE.md:
    *  transferControlToOffscreen happens inside this call, exactly once.
@@ -48,7 +50,7 @@ export interface CompareControllerOptions {
  */
 export function createCompareController(opts: CompareControllerOptions) {
   const {
-    statusEl, gridEl, backendBoxes, litertVersion, createStage,
+    statusEl, gridEl, backendBoxes, litertVersion, logStatusEl, createStage,
     canvasWidth = 384, canvasHeight = 384,
     iterations = 10, warmupRuns = 3,
   } = opts;
@@ -64,6 +66,7 @@ export function createCompareController(opts: CompareControllerOptions) {
   let generation = 0;
   let currentIterations = iterations;
   let currentLitertVersion = litertVersion;
+  const backendInferenceTimes = new Map<Backend, BackendInferenceTimes>();
 
   // Listen for inference count changes from the slider
   document.addEventListener('inferenceCountChanged', (e: Event) => {
@@ -176,7 +179,7 @@ export function createCompareController(opts: CompareControllerOptions) {
 
         if (myGeneration !== generation || !cards.has(backend)) continue;
 
-        renderReceiptBadge(card.receiptEl, record.delegation, record.warnings);
+        renderReceiptBadge(card.receiptEl, record.delegation, record.warnings, record.error);
         const isFull = record.delegation === 'full';
         renderMetricRow(
             card.metricLoadEl, 'Load + compile',
@@ -185,14 +188,51 @@ export function createCompareController(opts: CompareControllerOptions) {
             card.metricInferenceEl, 'Inference',
             record.metrics ? record.metrics.median_ms : null, !isFull);
 
+        // Store inference times for log-status display
+        if (record.metrics) {
+          backendInferenceTimes.set(backend, {
+            backend,
+            times: record.metrics.inference_times,
+            error: record.error,
+          });
+        } else if (record.error) {
+          backendInferenceTimes.set(backend, {
+            backend,
+            times: [],
+            error: record.error,
+          });
+        }
+
+        // Update log-status with all backend inference times
+        updateLogStatus(
+          logStatusEl ?? null,
+          Array.from(backendInferenceTimes.values()),
+          currentIterations
+        );
+
         // Full record to console — everything the page does not show, per
         // CLAUDE.md's "compute all, display little" rule.
         console.log(backend, record);
       } catch (e) {
         if (e instanceof DOMException && e.name === 'AbortError') continue;
         if (myGeneration !== generation || !cards.has(backend)) continue;
-        renderReceiptBadge(card.receiptEl, 'failed', []);
-        statusEl.textContent = e instanceof Error ? `${backend}: ${e.message}` : String(e);
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        renderReceiptBadge(card.receiptEl, 'failed', [], errorMessage);
+        statusEl.textContent = `${backend}: ${errorMessage}`;
+
+        // Store error for log-status display
+        backendInferenceTimes.set(backend, {
+          backend,
+          times: [],
+          error: errorMessage,
+        });
+
+        // Update log-status with all backend inference times
+        updateLogStatus(
+          logStatusEl ?? null,
+          Array.from(backendInferenceTimes.values()),
+          currentIterations
+        );
       }
     }
 
