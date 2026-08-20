@@ -97,6 +97,7 @@ export function runDemoWorker(handler: DemoWorkerHandler): void {
               msg.image.close(); // consumed once; free its backing memory promptly
               return inputs;
             },
+            onLog: (message) => post({type: 'log', requestId: msg.requestId, message}),
             onFinalOutput: (outputDetails, data) => {
               if (domMode) {
                 // In DOM mode, send output data back to main thread for rendering

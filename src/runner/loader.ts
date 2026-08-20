@@ -71,7 +71,8 @@ function revokeLastThreadedBlobUrl(): void {
  * forever with no way to cancel.
  */
 export async function ensureLiteRt(
-    version: string, mode: LoadMode, signal?: AbortSignal): Promise<LiteRt> {
+    version: string, mode: LoadMode, signal?: AbortSignal,
+    onLog?: (message: string) => void): Promise<LiteRt> {
   if (!isValidVersion(version)) {
     throw new Error(`Refusing to load "${version}" — must be strict semver (x.y.z).`);
   }
@@ -81,6 +82,7 @@ export async function ensureLiteRt(
   }
 
   if (loaded) {
+    onLog?.(`Reloading LiteRT WASM (${loaded.version} → ${version}, ${loaded.mode} → ${mode})...`);
     const unload = (loaded.mod as {unloadLiteRt?: () => void}).unloadLiteRt;
     if (typeof unload === 'function') {
       try {
@@ -92,6 +94,7 @@ export async function ensureLiteRt(
     loaded = null;
   }
 
+  onLog?.(`Loading LiteRT WASM (${mode})...`);
   const root = wasmRoot(version);
 
   let mod: LiteRt;

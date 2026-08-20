@@ -1,6 +1,6 @@
 import {findDemo} from '../../registry';
-import {fetchModelWithMirrorFallback} from '../../runner/hf-mirror';
-import {formatProgress, readWithProgress} from '../../runner/progress-fetch';
+import {loadModelBytesCached} from '../../runner/opfs-cache';
+import {formatProgress} from '../../runner/progress-fetch';
 import {MeasurementScheduler} from '../../runner/scheduler';
 import type {Backend, RunRecord} from '../../runner/types';
 import type {MainToWorkerMessage, WorkerToMainMessage} from '../../runner/worker-protocol';
@@ -22,6 +22,7 @@ export interface RunParams {
   iterations: number;
   warmupRuns: number;
   onProgress?: (message: string) => void;
+  onLog?: (message: string) => void;
 }
 
 /** Same shape as the other stages; see DepthAnythingStage for the full
@@ -40,13 +41,12 @@ export class EfficientVitStage {
     this.worker.postMessage(init, [offscreen]);
   }
 
-  private async loadModelBytes(onProgress?: (m: string) => void): Promise<ArrayBuffer> {
+  private async loadModelBytes(
+      onProgress?: (m: string) => void, onLog?: (m: string) => void): Promise<ArrayBuffer> {
     if (this.modelBytesCache) return this.modelBytesCache;
-    const res = await fetchModelWithMirrorFallback(DEMO.model.url);
-    if (!res.ok) throw new Error(`model fetch ${res.status} — ${DEMO.model.url}`);
-    const bytes = await readWithProgress(
-        res, (p) => onProgress?.(`fetching model… ${formatProgress(p)}`));
-    this.modelBytesCache = bytes.buffer as ArrayBuffer;
+    const {bytes} = await loadModelBytesCached(
+        DEMO.model.url, onLog, (p) => onProgress?.(`fetching model… ${formatProgress(p)}`));
+    this.modelBytesCache = bytes;
     return this.modelBytesCache;
   }
 
@@ -72,7 +72,7 @@ export class EfficientVitStage {
     const abortedError = () => new DOMException('superseded by a newer run', 'AbortError');
 
     const [cachedModel, colors] = await Promise.all([
-      this.loadModelBytes(params.onProgress),
+      this.loadModelBytes(params.onProgress, params.onLog),
       this.loadPalette(),
     ]);
     if (signal.aborted) throw abortedError();
@@ -90,6 +90,10 @@ export class EfficientVitStage {
       const onMessage = (event: MessageEvent<WorkerToMainMessage>): void => {
         const msg = event.data;
         if (msg.requestId !== requestId) return;
+        if (msg.type === 'log') {
+          params.onLog?.(msg.message);
+          return;
+        }
         this.worker.removeEventListener('message', onMessage);
         if (!isCurrent()) {
           reject(abortedError());

@@ -1,40 +1,45 @@
 /**
- * Updates the log-status element with inference times for each backend.
- * Shows individual inference times based on the inference count setting.
+ * Append-only, timestamped log for the `#log-status` panel — every backend's
+ * full run transcript stays visible and scrolls, rather than being replaced
+ * by the next backend's summary. Fed by measure.ts's `onLog` callback (via
+ * each demo's worker) and by the main-thread OPFS cache lookup, so a run's
+ * full detail (compile start, per-iteration counters, final stats) shows up
+ * as it happens — matching the two on-page metrics staying minimal per
+ * CLAUDE.md's "compute all, display little" rule.
  */
 
-export interface BackendInferenceTimes {
-  backend: string;
-  times: number[];
-  error?: string;
+const MAX_LINES = 500;
+
+export interface Logger {
+  log(message: string): void;
+  clear(): void;
 }
 
-export function updateLogStatus(
-  logStatusEl: HTMLElement | null,
-  backendTimes: BackendInferenceTimes[],
-  inferenceCount: number
-): void {
-  if (!logStatusEl) return;
-
-  if (backendTimes.length === 0) {
-    logStatusEl.textContent = 'No inference data available';
-    return;
-  }
-
+export function createLogger(logStatusEl: HTMLElement | null): Logger {
   const lines: string[] = [];
 
-  for (const {backend, times, error} of backendTimes) {
-    if (error) {
-      lines.push(`${backend}: Error - ${error}`);
-    } else if (times.length === 0) {
-      lines.push(`${backend}: No data`);
-    } else {
-      // Show individual inference times, limited to the inference count
-      const displayTimes = times.slice(0, inferenceCount);
-      const timesStr = displayTimes.map(t => t.toFixed(1)).join(', ');
-      lines.push(`${backend}: [${timesStr}]`);
-    }
+  function render(): void {
+    if (!logStatusEl) return;
+    logStatusEl.textContent = lines.join('\n');
+    logStatusEl.scrollTop = logStatusEl.scrollHeight;
   }
 
-  logStatusEl.textContent = lines.join('\n');
+  return {
+    log(message: string): void {
+      lines.push(`${timestamp()} ${message}`);
+      if (lines.length > MAX_LINES) lines.splice(0, lines.length - MAX_LINES);
+      render();
+    },
+    clear(): void {
+      lines.length = 0;
+      render();
+    },
+  };
+}
+
+function timestamp(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(d.getMonth() + 1)}/${pad(d.getDate())} ` +
+      `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }

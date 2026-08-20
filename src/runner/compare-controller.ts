@@ -1,6 +1,6 @@
 import {renderMetricRow} from '../ui/metric-row';
 import {renderReceiptBadge} from '../ui/receipt-badge';
-import {updateLogStatus, type BackendInferenceTimes} from '../ui/log-status';
+import {createLogger} from '../ui/log-status';
 import {BACKENDS, isBackend, type Backend} from './types';
 import type {RunRecord} from './types';
 
@@ -13,6 +13,7 @@ export interface StageLike {
     iterations: number;
     warmupRuns: number;
     onProgress?: (message: string) => void;
+    onLog?: (message: string) => void;
   }): Promise<RunRecord>;
   dispose(): void;
 }
@@ -66,7 +67,7 @@ export function createCompareController(opts: CompareControllerOptions) {
   let generation = 0;
   let currentIterations = iterations;
   let currentLitertVersion = litertVersion;
-  const backendInferenceTimes = new Map<Backend, BackendInferenceTimes>();
+  const logger = createLogger(logStatusEl ?? null);
 
   // Listen for inference count changes from the slider
   document.addEventListener('inferenceCountChanged', (e: Event) => {
@@ -175,6 +176,9 @@ export function createCompareController(opts: CompareControllerOptions) {
           onProgress: (message) => {
             if (myGeneration === generation) statusEl.textContent = `${backend}: ${message}`;
           },
+          onLog: (message) => {
+            if (myGeneration === generation) logger.log(message);
+          },
         });
 
         if (myGeneration !== generation || !cards.has(backend)) continue;
@@ -188,28 +192,6 @@ export function createCompareController(opts: CompareControllerOptions) {
             card.metricInferenceEl, 'Inference',
             record.metrics ? record.metrics.median_ms : null, !isFull);
 
-        // Store inference times for log-status display
-        if (record.metrics) {
-          backendInferenceTimes.set(backend, {
-            backend,
-            times: record.metrics.inference_times,
-            ...(record.error && {error: record.error}),
-          });
-        } else if (record.error) {
-          backendInferenceTimes.set(backend, {
-            backend,
-            times: [],
-            error: record.error,
-          });
-        }
-
-        // Update log-status with all backend inference times
-        updateLogStatus(
-          logStatusEl ?? null,
-          Array.from(backendInferenceTimes.values()),
-          currentIterations
-        );
-
         // Full record to console — everything the page does not show, per
         // CLAUDE.md's "compute all, display little" rule.
         console.log(backend, record);
@@ -219,20 +201,7 @@ export function createCompareController(opts: CompareControllerOptions) {
         const errorMessage = e instanceof Error ? e.message : String(e);
         renderReceiptBadge(card.receiptEl, 'failed', [], errorMessage);
         statusEl.textContent = `${backend}: ${errorMessage}`;
-
-        // Store error for log-status display
-        backendInferenceTimes.set(backend, {
-          backend,
-          times: [],
-          error: errorMessage,
-        });
-
-        // Update log-status with all backend inference times
-        updateLogStatus(
-          logStatusEl ?? null,
-          Array.from(backendInferenceTimes.values()),
-          currentIterations
-        );
+        logger.log(`${backend}: ${errorMessage}`);
       }
     }
 

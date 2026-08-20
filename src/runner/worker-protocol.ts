@@ -63,6 +63,19 @@ export interface WorkerErrorMessage {
 }
 
 /**
+ * One incremental log line from measureBackend's progress (compile start,
+ * per-iteration counters, final stats) — see log-status.ts. Sent as its own
+ * message rather than folded into 'record' so the log-status panel can grow
+ * in real time instead of appearing all at once when the run finishes.
+ */
+export interface LogMessage {
+  type: 'log';
+  requestId: string;
+  message: string;
+}
+
+
+/**
  * Message for demos that render via DOM instead of canvas (e.g., text-based
  * classification). Returns the raw output data so the main thread can render
  * it into HTML elements.
@@ -79,4 +92,5 @@ export interface RenderDataMessage {
   extra?: unknown;
 }
 
-export type WorkerToMainMessage = RecordMessage | WorkerErrorMessage | RenderDataMessage;
+export type WorkerToMainMessage =
+    RecordMessage | WorkerErrorMessage | RenderDataMessage | LogMessage;

@@ -10,7 +10,7 @@ import {DEFAULT_LITERT_VERSION} from '../../runner/loader';
 import {BACKENDS, DEFAULT_BACKEND, isBackend, type Backend} from '../../runner/types';
 import {renderMetricRow} from '../../ui/metric-row';
 import {renderReceiptBadge} from '../../ui/receipt-badge';
-import {updateLogStatus, type BackendInferenceTimes} from '../../ui/log-status';
+import {createLogger} from '../../ui/log-status';
 import {captureOneFrame, SelfieMulticlassStage} from './stage';
 import {setupLiteRtVersionDropdown} from '../../ui/litert-version';
 import {setupInferenceCount} from '../../ui/inference-count';
@@ -48,15 +48,7 @@ let lastFrame: ImageBitmap | null = null;
 let generation = 0;
 let currentIterations = 10;
 let currentLitertVersion = litertVersion;
-const backendInferenceTimes = new Map<Backend, BackendInferenceTimes>();
-
-// Initialize inference times for a backend
-function initBackendInferenceTimes(backend: Backend): void {
-  backendInferenceTimes.set(backend, {
-    backend,
-    times: [],
-  });
-}
+const logger = createLogger(logStatusEl);
 
 // Listen for inference count changes from the slider
 document.addEventListener('inferenceCountChanged', (e: Event) => {
@@ -116,29 +108,11 @@ function selectedBackends(): Backend[] {
 function reconcileCards(): void {
   const selected = new Set(selectedBackends());
   for (const backend of [...cards.keys()]) {
-    if (!selected.has(backend)) {
-      // Mark backend as not selected in inference times
-      backendInferenceTimes.set(backend, {
-        backend,
-        times: [],
-        error: 'Backend not selected',
-      });
-      destroyCard(backend);
-    }
+    if (!selected.has(backend)) destroyCard(backend);
   }
   for (const backend of selected) {
-    if (!cards.has(backend)) {
-      // Initialize inference times for new backend
-      initBackendInferenceTimes(backend);
-      cards.set(backend, createCard(backend));
-    }
+    if (!cards.has(backend)) cards.set(backend, createCard(backend));
   }
-  // Update log status after card reconciliation
-  updateLogStatus(
-    logStatusEl,
-    Array.from(backendInferenceTimes.values()),
-    currentIterations
-  );
 }
 
 
@@ -152,10 +126,6 @@ async function runAll(): Promise<void> {
   if (!backends.length) {
     statusEl.textContent = 'select at least one backend';
     return;
-  }
-  // Initialize inference times for all selected backends
-  for (const backend of backends) {
-    initBackendInferenceTimes(backend);
   }
   for (const backend of backends) {
     if (myGeneration !== generation) return;
@@ -173,6 +143,9 @@ async function runAll(): Promise<void> {
         onProgress: (message) => {
           if (myGeneration === generation) statusEl.textContent = `${backend}: ${message}`;
         },
+        onLog: (message) => {
+          if (myGeneration === generation) logger.log(message);
+        },
       });
 
       if (myGeneration !== generation || !cards.has(backend)) continue;
@@ -186,28 +159,6 @@ async function runAll(): Promise<void> {
           card.metricInferenceEl, 'Inference',
           record.metrics ? record.metrics.median_ms : null, !isFull);
 
-      // Store inference times for log-status display
-      if (record.metrics) {
-        backendInferenceTimes.set(backend, {
-          backend,
-          times: record.metrics.inference_times,
-          ...(record.error && {error: record.error}),
-        });
-      } else if (record.error) {
-        backendInferenceTimes.set(backend, {
-          backend,
-          times: [],
-          error: record.error,
-        });
-      }
-
-      // Update log-status with all backend inference times
-      updateLogStatus(
-        logStatusEl,
-        Array.from(backendInferenceTimes.values()),
-        currentIterations
-      );
-
       console.log(backend, record);
     } catch (e) {
       if (e instanceof DOMException && e.name === 'AbortError') continue;
@@ -215,20 +166,7 @@ async function runAll(): Promise<void> {
       const errorMessage = e instanceof Error ? e.message : String(e);
       renderReceiptBadge(card.receiptEl, 'failed', [], errorMessage);
       statusEl.textContent = `${backend}: ${errorMessage}`;
-
-      // Store error for log-status display
-      backendInferenceTimes.set(backend, {
-        backend,
-        times: [],
-        error: errorMessage,
-      });
-
-      // Update log-status with all backend inference times
-      updateLogStatus(
-        logStatusEl,
-        Array.from(backendInferenceTimes.values()),
-        currentIterations
-      );
+      logger.log(`${backend}: ${errorMessage}`);
     }
   }
 

@@ -133,6 +133,14 @@ export interface MeasureOptions {
    * already happens every iteration for timing, so this adds no extra cost.
    */
   onFinalOutput?: (details: readonly TensorDetails[], data: OutputData) => void;
+  /**
+   * Incremental, timestamped progress lines (compile start, per-iteration
+   * counters, final stats) — for the log-status panel's running transcript,
+   * distinct from the two on-page metrics. Ported in spirit from
+   * web-ai-run's sendStatus/log calls. Fired after each iteration's timing
+   * is already captured, so logging itself never counts toward a sample.
+   */
+  onLog?: (message: string) => void;
 }
 
 const DEFAULT_COMPILE_TIMEOUT_MS = 30_000;
@@ -157,16 +165,19 @@ export async function measureBackend(
     compileTimeoutMs = DEFAULT_COMPILE_TIMEOUT_MS,
     buildInputs = makeZeroInputs,
     onFinalOutput,
+    onLog,
   } = options;
   let compiled: CompiledModel | null = null;
 
   try {
-    const mod = await ensureLiteRt(litertVersion, loadModeFor(backend), signal);
+    onLog?.(`Loading LiteRT.js v${litertVersion}...`);
+    const mod = await ensureLiteRt(litertVersion, loadModeFor(backend), signal, onLog);
 
     const compileController = new AbortController();
     const compileTimer = setTimeout(() => compileController.abort(), compileTimeoutMs);
     const combined = anySignal([signal, compileController.signal]);
 
+    onLog?.(`Compiling model with ${backend} backend...`);
     const started = performance.now();
     let value: CompiledModel;
     let warnings: string[];
@@ -193,6 +204,7 @@ export async function measureBackend(
       clearTimeout(compileTimer);
     }
     const loadAndCompileMs = performance.now() - started;
+    onLog?.(`Load+Compile Time: ${loadAndCompileMs.toFixed(2)} ms`);
 
     compiled = value;
     const delegation: Delegation = compiled.isFullyAccelerated ? 'full' : 'partial';
@@ -201,7 +213,14 @@ export async function measureBackend(
     const inputs = buildInputs(mod, details);
 
     let firstInferenceMs = 0;
+    const warmupTimes: number[] = [];
     const samples: number[] = [];
+    // Throttle "Inferencing i/n" lines to ~10 total — logging every one of
+    // 1000 iterations would flood the panel and add postMessage overhead.
+    const progressStep = Math.max(1, Math.floor(iterations / 10));
+
+    if (warmupRuns > 0) onLog?.(`Warming up (${warmupRuns} run${warmupRuns === 1 ? '' : 's'})...`);
+    else onLog?.(`Inferencing 0/${iterations}...`);
 
     for (let i = 0; i < warmupRuns + iterations; i++) {
       signal?.throwIfAborted();
@@ -227,9 +246,20 @@ export async function measureBackend(
           outputDetails.map((d) => d.name) : Object.keys(out);
       const outData = await Promise.all(outTensors.map((t) => t.data()));
 
+      // Log lines fire after `elapsed` is captured, so they never count
+      // toward a timed sample — same ordering web-ai-run's worker uses.
       const elapsed = performance.now() - t0;
       if (i === 0) firstInferenceMs = elapsed;
-      if (i >= warmupRuns) samples.push(elapsed);
+      if (i < warmupRuns) {
+        warmupTimes.push(elapsed);
+        if (i === warmupRuns - 1 && iterations > 0) onLog?.(`Inferencing 0/${iterations}...`);
+      } else {
+        samples.push(elapsed);
+        const benchI = i - warmupRuns;
+        if ((benchI + 1) % progressStep === 0 || benchI === iterations - 1) {
+          onLog?.(`Inferencing ${benchI + 1}/${iterations}...`);
+        }
+      }
 
       const isLastIteration = i === warmupRuns + iterations - 1;
       if (isLastIteration && onFinalOutput) {
@@ -246,13 +276,29 @@ export async function measureBackend(
 
     for (const t of Object.values(inputs)) t.delete();
 
+    const metrics = computeMetrics(samples, loadAndCompileMs, firstInferenceMs);
+    if (warmupRuns > 0) {
+      onLog?.(`Warmup times: [${warmupTimes.map((t) => t.toFixed(2)).join(', ')}] ms`);
+    }
+    onLog?.(`First Inference Time: ${firstInferenceMs.toFixed(2)} ms`);
+    onLog?.(`Time to First Inference: ${metrics.time_to_first_ms.toFixed(2)} ms`);
+    onLog?.(`Inference times (ms): [${samples.map((t) => t.toFixed(2)).join(', ')}]`);
+    onLog?.(`Average: ${metrics.average_ms.toFixed(2)} ms`);
+    onLog?.(`Median: ${metrics.median_ms.toFixed(2)} ms`);
+    onLog?.(`Best: ${metrics.best_ms.toFixed(2)} ms`);
+    onLog?.(`P90: ${metrics.p90_ms.toFixed(2)} ms`);
+    const totalMs = samples.reduce((a, b) => a + b, 0);
+    onLog?.(`Total (${iterations} runs): ${totalMs.toFixed(2)} ms`);
+    onLog?.(`Throughput: ${metrics.throughput_fps.toFixed(2)} FPS`);
+    onLog?.(`Test completed with ${backend} backend`);
+
     return {
       backend,
       delegation,
       effectiveAccelerator: compiled.options.accelerator ?? '(unknown)',
       warnings,
       inputs: describeInputs(details),
-      metrics: computeMetrics(samples, loadAndCompileMs, firstInferenceMs),
+      metrics,
     };
   } catch (e) {
     if (!isEnvironmentFailure(e)) throw e; // programmer error — do not mislabel as hardware
