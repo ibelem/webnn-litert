@@ -173,7 +173,15 @@ export async function measureBackend(
     try {
       ({value, warnings} = await withConsoleCapture(async () => withTimeout(
            (async () => {
-             if (backend === 'webgpu') {
+             // loadLiteRt() already auto-creates a default WebGPU device (see
+             // Environment.create() in load_litert.ts). Requesting another
+             // adapter/device here on every re-run replaces the module's
+             // default Environment without disposing the old one — the old
+             // native LiteRtEnvironment is never deleted, and the resulting
+             // churn corrupts WebGPU output on the second and later runs in
+             // the same worker (compiles fine, produces all-zero tensors).
+             // Only step in if the default device creation didn't happen.
+             if (backend === 'webgpu' && !mod.getWebGpuDevice()) {
                const adapter = await navigator.gpu?.requestAdapter();
                if (!adapter) throw new Error('no WebGPU adapter available');
                mod.setWebGpuDevice(await adapter.requestDevice());
