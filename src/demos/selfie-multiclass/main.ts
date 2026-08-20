@@ -9,7 +9,9 @@
 import {DEFAULT_LITERT_VERSION} from '../../runner/loader';
 import {BACKENDS, DEFAULT_BACKEND, isBackend, type Backend} from '../../runner/types';
 import {renderMetricRow} from '../../ui/metric-row';
-import {renderReceiptBadge} from '../../ui/receipt-badge';import {updateLogStatus, type BackendInferenceTimes} from '../ui/log-status';import {captureOneFrame, SelfieMulticlassStage} from './stage';
+import {renderReceiptBadge} from '../../ui/receipt-badge';
+import {updateLogStatus, type BackendInferenceTimes} from '../../ui/log-status';
+import {captureOneFrame, SelfieMulticlassStage} from './stage';
 import {setupLiteRtVersionDropdown} from '../../ui/litert-version';
 import {setupInferenceCount} from '../../ui/inference-count';
 
@@ -53,15 +55,8 @@ function initBackendInferenceTimes(backend: Backend): void {
   backendInferenceTimes.set(backend, {
     backend,
     times: [],
-    error: undefined,
   });
 }
-
-// Clear inference times when backends change
-function clearInferenceTimes(): void {
-  backendInferenceTimes.clear();
-  updateLogStatus(logStatusEl, [], currentIterations);
-
 
 // Listen for inference count changes from the slider
 document.addEventListener('inferenceCountChanged', (e: Event) => {
@@ -144,6 +139,7 @@ function reconcileCards(): void {
     Array.from(backendInferenceTimes.values()),
     currentIterations
   );
+}
 
 
 async function runAll(): Promise<void> {
@@ -195,7 +191,7 @@ async function runAll(): Promise<void> {
         backendInferenceTimes.set(backend, {
           backend,
           times: record.metrics.inference_times,
-          error: record.error,
+          ...(record.error && {error: record.error}),
         });
       } else if (record.error) {
         backendInferenceTimes.set(backend, {

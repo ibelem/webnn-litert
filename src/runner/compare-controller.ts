@@ -193,7 +193,7 @@ export function createCompareController(opts: CompareControllerOptions) {
           backendInferenceTimes.set(backend, {
             backend,
             times: record.metrics.inference_times,
-            error: record.error,
+            ...(record.error && {error: record.error}),
           });
         } else if (record.error) {
           backendInferenceTimes.set(backend, {
