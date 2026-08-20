@@ -189,10 +189,12 @@ a:hover {
   aspect-ratio: 16 / 10;
   object-fit: cover;
   background: var(--color-bg-subtle);
-  /* This (the base rule) is what governs hover-OUT — it's what applies once
-   * :hover/:focus-visible stop matching. Kept a touch slower than hover-in
-   * below so the zoom settles back gracefully instead of snapping. */
-  transition: transform 0.9s var(--ease-smooth);
+  /* This (the base rule) governs hover-OUT — what applies once :hover/
+   * :focus-visible stop matching. A plain decelerate curve is already the
+   * right shape for returning to rest: it ends at low velocity, so there's
+   * no abrupt-stop problem to solve here the way there is on the way in.
+   * Faster than hover-in below ("exit faster than entrance"). */
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform;
   backface-visibility: hidden;
 }
@@ -200,11 +202,19 @@ a:hover {
 .demo-card a:hover .demo-card__thumb,
 .demo-card a:focus-visible .demo-card__thumb {
   transform: scale(1.2);
-  /* Hover-IN: its own (quicker) duration, declared here because this rule is
-   * what's active the moment the state starts matching. Ease-IN (not
-   * --ease-smooth's symmetric ease-in-out) so the zoom starts slow and
-   * accelerates, rather than slow-fast-slow. */
-  transition: transform 0.6s cubic-bezier(0.4, 0, 1, 1);
+  /* Hover-IN: a plain ease-in (accelerate) curve mathematically ends at
+   * MAXIMUM velocity — the transition halts abruptly at full speed, which
+   * reads as a jarring stop no matter how "correct" the acceleration feels
+   * up to that point. A two-control-point cubic-bezier can't fix this: it
+   * can only trade "ends fast" for "ends slow," not have both a long
+   * accelerating middle AND a soft landing. linear() (Chrome-only, fine
+   * here) builds that third phase explicitly: barely moving through ~45%,
+   * building speed hard through ~45-80%, then a quick ease-off from ~85%
+   * to 100% so it settles into the larger size instead of slamming into it. */
+  transition: transform 0.46s linear(
+    0, 0.008 10%, 0.03 20%, 0.07 30%, 0.14 40%, 0.25 50%, 0.4 60%, 0.58 70%,
+    0.78 80%, 0.9 87%, 0.965 93%, 0.99 97%, 1 100%
+  );
 }
 
 .demo-card__body {
