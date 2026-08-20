@@ -3,6 +3,17 @@
  * Allows users to upload custom images for inference.
  */
 
+const DEFAULT_IMAGE_SRC = '/images/sample-dog.jpg';
+
+/** Whatever image is currently shown in the sidebar preview — the bundled
+ *  sample, or a data: URL from a user upload. Stages read this at inference
+ *  time instead of hardcoding the sample path, so an upload actually reaches
+ *  the model. */
+export function getCurrentImageSrc(): string {
+  const demoImage = document.getElementById('demo-image') as HTMLImageElement | null;
+  return demoImage?.src || DEFAULT_IMAGE_SRC;
+}
+
 export function setupImageUpload(): void {
   const fileInput = document.getElementById('image-upload') as HTMLInputElement;
   const demoImage = document.getElementById('demo-image') as HTMLImageElement;

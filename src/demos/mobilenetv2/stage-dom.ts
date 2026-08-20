@@ -1,4 +1,5 @@
 import {findDemo} from '../../registry';
+import {getCurrentImageSrc} from '../../ui/image-upload';
 import {fetchModelWithMirrorFallback} from '../../runner/hf-mirror';
 import {loadModelBytesCached} from '../../runner/opfs-cache';
 import {formatProgress} from '../../runner/progress-fetch';
@@ -60,7 +61,7 @@ export class MobilenetDomStage {
   }
 
   private async loadSourceImage(): Promise<ImageBitmap> {
-    const res = await fetch('/images/sample-dog.jpg');
+    const res = await fetch(getCurrentImageSrc());
     if (!res.ok) throw new Error(`sample image fetch ${res.status}`);
     return createImageBitmap(await res.blob());
   }

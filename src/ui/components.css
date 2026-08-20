@@ -141,6 +141,7 @@
 
 .metric-row__value {
   font-weight: var(--weight-medium);
+  color: var(--wn-pink)
 }
 
 /* Demo page chrome */

@@ -1,4 +1,5 @@
 import {findDemo} from '../../registry';
+import {getCurrentImageSrc} from '../../ui/image-upload';
 import {loadModelBytesCached} from '../../runner/opfs-cache';
 import {formatProgress} from '../../runner/progress-fetch';
 import {MeasurementScheduler} from '../../runner/scheduler';
@@ -67,7 +68,7 @@ export class DepthAnythingStage {
   }
 
   private async loadSourceImage(): Promise<ImageBitmap> {
-    const res = await fetch('/images/sample-dog.jpg');
+    const res = await fetch(getCurrentImageSrc());
     if (!res.ok) throw new Error(`sample image fetch ${res.status}`);
     return createImageBitmap(await res.blob());
   }

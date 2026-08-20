@@ -89,6 +89,11 @@ export function createCompareController(opts: CompareControllerOptions) {
     void runAll();
   });
 
+  // Listen for a new image upload — re-run whatever backends are already
+  // checked against it. runAll()'s own guard makes this a no-op when none
+  // are selected yet; the visitor's next checkbox click picks it up instead.
+  document.addEventListener('imageUploaded', () => void runAll());
+
   // Listen for backend checkbox changes and update URL
   backendBoxes.forEach(box => {
     box.addEventListener('change', () => {
