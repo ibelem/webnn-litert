@@ -1,5 +1,12 @@
 /* Home page. Registry-generated, so it cannot diverge from the detail pages. */
 
+:root {
+  /* Shared motion language for this page — a gentle, symmetric ease
+   * (Material's "standard" curve). Hoisted here rather than scoped to
+   * .demo-card so the header logo's intro can use the same one. */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* Site header with logo */
 .site-header {
   padding: var(--space-2) var(--space-4);
@@ -20,6 +27,29 @@
 .logo {
   display: block;
   height: auto;
+}
+
+/* Page-load moment: the network glyph half of the logo (stroke lines +
+ * hub-node circles — see main.ts's animateLogo) draws its connections in,
+ * then lights up its nodes. The wordmark half has neither class and stays
+ * static throughout. */
+.logo .c2 {
+  transition-property: stroke-dashoffset;
+  transition-timing-function: var(--ease-smooth);
+}
+
+.logo .logo-node {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(0.35);
+  opacity: 0;
+  transition-property: transform, opacity;
+  transition-timing-function: var(--ease-smooth);
+}
+
+.logo .logo-node--in {
+  transform: scale(1);
+  opacity: 1;
 }
 
 /* Site footer */
@@ -83,7 +113,7 @@
 
 .lede.small {
   font-size: var(--text-sm);
-  margin-top: var(--space-7);
+  margin-top: var(--space-6);
   padding: var(--space-3);
   background: var(--color-bg-subtle);
   border-radius: var(--radius);
@@ -129,12 +159,20 @@ a:hover {
   grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
 }
 
+/* Page-load entrance — a literal list appearing as a list, per animate.md's
+ * sibling-stagger allowance. --card-delay (main.ts) is capped at 480ms total
+ * spread regardless of grid size. */
+@keyframes demo-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+}
+
 .demo-card {
-  /* A gentle, symmetric ease (Material's "standard" curve) instead of an
-   * expo-out — expo decelerates so hard from a dead stop that hover-in reads
-   * as a flung-then-caught snap, and reversing it for hover-out (the same
-   * curve runs backwards) snaps just as hard at the very end. */
-  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0;
+  animation: demo-card-in 0.5s var(--ease-smooth) forwards;
+  animation-delay: calc(200ms + var(--card-delay, 0ms));
 
   border: var(--border-hairline) solid var(--color-border);
   border-radius: var(--radius);
@@ -272,6 +310,7 @@ a:hover {
 .demo-card:hover .demo-card__cta,
 .demo-card:focus-within .demo-card__cta {
   opacity: 0.8;
+  transform: translate(0, 0) scale(1);
 }
 
 /* Pending demos are visibly not-yet-built rather than hidden, so the home page
@@ -303,4 +342,18 @@ a:hover {
   background: var(--color-bg-subtle);
   border-radius: var(--radius-sm);
   border: var(--border-hairline) solid var(--color-border);
+}
+
+/* The card entrance is pure CSS (animation-delay isn't touched by the global
+ * *,*::before,*::after{transition-duration:.01ms} reduced-motion rule in
+ * tokens.css, only *-duration is) — without this override, a squashed
+ * animation still waits out its full staggered delay before snapping into
+ * view, which reads as broken rather than absent. The logo intro doesn't
+ * need an equivalent: it's gated in JS by the same media query and never
+ * touches the DOM under reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .demo-card {
+    animation: none;
+    opacity: 1;
+  }
 }
