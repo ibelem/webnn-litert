@@ -19,7 +19,6 @@ export interface StageLike {
 }
 
 export interface CompareControllerOptions {
-  statusEl: HTMLElement;
   gridEl: HTMLElement;
   backendBoxes: HTMLInputElement[];
   litertVersion: string;
@@ -51,7 +50,7 @@ export interface CompareControllerOptions {
  */
 export function createCompareController(opts: CompareControllerOptions) {
   const {
-    statusEl, gridEl, backendBoxes, litertVersion, logStatusEl, createStage,
+    gridEl, backendBoxes, litertVersion, logStatusEl, createStage,
     canvasWidth = 384, canvasHeight = 384,
     iterations = 10, warmupRuns = 3,
   } = opts;
@@ -92,6 +91,13 @@ export function createCompareController(opts: CompareControllerOptions) {
       void runAll();
     });
   });
+
+  /** e.g. "Inference (Median of 10 Runs)" — falls back to a bare label before
+   *  any run has produced a sample count yet. */
+  function inferenceLabel(runCount: number | undefined): string {
+    if (!runCount) return 'Inference';
+    return `Inference (Median of ${runCount} Run${runCount === 1 ? '' : 's'})`;
+  }
 
   function createCard(backend: Backend): Card {
     const wrap = document.createElement('div');
@@ -155,7 +161,7 @@ export function createCompareController(opts: CompareControllerOptions) {
     const backends = selectedBackends();
 
     if (!backends.length) {
-      statusEl.textContent = 'select at least one backend';
+      logger.log('select at least one backend');
       return;
     }
 
@@ -166,16 +172,12 @@ export function createCompareController(opts: CompareControllerOptions) {
       const card = cards.get(backend);
       if (!card) continue;
 
-      statusEl.textContent = `measuring ${backend}…`;
       try {
         const record = await card.stage.run({
           backend,
           litertVersion: currentLitertVersion,
           iterations: currentIterations,
           warmupRuns,
-          onProgress: (message) => {
-            if (myGeneration === generation) statusEl.textContent = `${backend}: ${message}`;
-          },
           onLog: (message) => {
             if (myGeneration === generation) logger.log(message);
           },
@@ -189,7 +191,7 @@ export function createCompareController(opts: CompareControllerOptions) {
             card.metricLoadEl, 'Load + compile',
             record.metrics ? record.metrics.load_and_compile_ms : null, !isFull);
         renderMetricRow(
-            card.metricInferenceEl, 'Inference',
+            card.metricInferenceEl, inferenceLabel(record.metrics?.inference_times.length),
             record.metrics ? record.metrics.median_ms : null, !isFull);
 
         // Full record to console — everything the page does not show, per
@@ -200,13 +202,8 @@ export function createCompareController(opts: CompareControllerOptions) {
         if (myGeneration !== generation || !cards.has(backend)) continue;
         const errorMessage = e instanceof Error ? e.message : String(e);
         renderReceiptBadge(card.receiptEl, 'failed', [], errorMessage);
-        statusEl.textContent = `${backend}: ${errorMessage}`;
         logger.log(`${backend}: ${errorMessage}`);
       }
-    }
-
-    if (myGeneration === generation) {
-      statusEl.textContent = `done · measured sequentially on @litertjs/core@${currentLitertVersion} · ${warmupRuns} warmup runs · ${currentIterations} inference runs`;
     }
   }
 

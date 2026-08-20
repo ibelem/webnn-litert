@@ -58,7 +58,6 @@
   gap: var(--space-1);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius);
-  border: var(--border-hairline) solid var(--color-border);
 }
 
 .receipt-badge__text {
@@ -261,6 +260,37 @@
   color: var(--color-accent);
 }
 
+/* Primary CTA in the sidebar (selfie-multiclass's capture button) — same
+ * bordered-box language as .image-upload__button so the two sidebar
+ * buttons read as one family instead of one styled and one bare. */
+.run {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  margin-top: var(--space-3);
+  background: var(--color-surface);
+  border: var(--border-hairline) solid var(--color-border);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--color-fg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.run:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.run:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Responsive: stack sidebar on mobile */
 @media (max-width: 48rem) {
   .demo-layout {
@@ -273,18 +303,19 @@
   }
 }
 
-.demo-controls fieldset {
+.demo-controls-group {
   border: var(--border-hairline) solid var(--color-border);
   border-radius: var(--radius);
   padding: var(--space-3);
   margin: 0 0 var(--space-3);
 }
 
-.demo-controls legend {
+.demo-controls-group__title {
   font-size: var(--text-xs);
   color: var(--color-fg-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  margin-bottom: var(--space-2);
 }
 
 .demo-controls label {

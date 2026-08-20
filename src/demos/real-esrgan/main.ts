@@ -15,7 +15,6 @@ const params = new URLSearchParams(location.search);
 const litertVersion = params.get('litertjs') ?? DEFAULT_LITERT_VERSION;
 
 const controller = createCompareController({
-  statusEl: el('status'),
   gridEl: el('compare-grid'),
   backendBoxes: [...document.querySelectorAll<HTMLInputElement>('input[name="backend"]')],
   litertVersion,

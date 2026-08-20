@@ -32,15 +32,15 @@
   <div class="demo-layout">
     <aside class="demo-sidebar">
       <div class="demo-controls">
-        <fieldset>
-          <legend title="Compare — measured one at a time, never concurrently">Backend</legend>
+        <div class="demo-controls-group" role="group" aria-label="Backend">
+          <div class="demo-controls-group__title" title="Compare — measured one at a time, never concurrently">Backend</div>
           <label><input type="checkbox" name="backend" value="webgpu" checked> WebGPU</label>
           <label><input type="checkbox" name="backend" value="webnn-gpu"> WebNN GPU</label>
           <label><input type="checkbox" name="backend" value="webnn-npu"> WebNN NPU</label>
           <label><input type="checkbox" name="backend" value="wasm"> WASM (CPU baseline)</label>
-        </fieldset>
-        <fieldset>
-          <legend>Inference Count (1)</legend>
+        </div>
+        <div class="demo-controls-group" role="group" aria-label="Inference Count">
+          <div class="demo-controls-group__title">Inference Count (1)</div>
           <div class="inference-count-control">
             <input type="range" id="inference-count" min="1" max="1000" step="1" value="1" class="inference-count-slider">
             <div class="inference-count-presets">
@@ -51,13 +51,13 @@
               <button type="button" class="inference-count-preset" data-value="1000">1000</button>
             </div>
           </div>
-        </fieldset>
-        <fieldset>
-          <legend>LiteRT.js Version</legend>
+        </div>
+        <div class="demo-controls-group" role="group" aria-label="LiteRT.js Version">
+          <div class="demo-controls-group__title">LiteRT.js Version</div>
           <select id="litert-version" class="litert-version-select">
             <option value="">Loading versions...</option>
           </select>
-        </fieldset>
+        </div>
       </div>
       <div class="sample-image">
         <img src="images/sample-dog.jpg" alt="Sample image" id="demo-image"/>
@@ -68,7 +68,7 @@
         <div class="image-upload">
           <input type="file" class="image-upload__input" id="image-upload" accept="image/*">
           <label for="image-upload" class="image-upload__button">
-            Choose image
+            Choose Image
           </label>
         </div>
       </div>
@@ -77,7 +77,6 @@
     <div class="demo-content">
       <div class="compare-grid" id="compare-grid"></div>
       <div class="log-status" id="log-status"></div>
-      <div id="status"></div>
     </div>
   </div>
 </main>

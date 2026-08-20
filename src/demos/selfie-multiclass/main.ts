@@ -21,7 +21,6 @@ function el<T extends HTMLElement>(id: string): T {
   return node as T;
 }
 
-const statusEl = el<HTMLDivElement>('status');
 const gridEl = el<HTMLDivElement>('compare-grid');
 const captureButton = el<HTMLButtonElement>('capture');
 const logStatusEl = el<HTMLDivElement>('log-status');
@@ -105,6 +104,13 @@ function selectedBackends(): Backend[] {
   return BACKENDS.filter((b) => backendBoxes.find((box) => box.value === b)?.checked);
 }
 
+/** e.g. "Inference (Median of 10 Runs)" — falls back to a bare label before
+ *  any run has produced a sample count yet. */
+function inferenceLabel(runCount: number | undefined): string {
+  if (!runCount) return 'Inference';
+  return `Inference (Median of ${runCount} Run${runCount === 1 ? '' : 's'})`;
+}
+
 function reconcileCards(): void {
   const selected = new Set(selectedBackends());
   for (const backend of [...cards.keys()]) {
@@ -124,7 +130,7 @@ async function runAll(): Promise<void> {
   const backends = selectedBackends();
 
   if (!backends.length) {
-    statusEl.textContent = 'select at least one backend';
+    logger.log('select at least one backend');
     return;
   }
   for (const backend of backends) {
@@ -132,7 +138,6 @@ async function runAll(): Promise<void> {
     const card = cards.get(backend);
     if (!card || !lastFrame) continue;
 
-    statusEl.textContent = `measuring ${backend}…`;
     try {
       await card.stage.setFrame(lastFrame);
       const record = await card.stage.run({
@@ -140,9 +145,6 @@ async function runAll(): Promise<void> {
         litertVersion: currentLitertVersion,
         iterations: currentIterations,
         warmupRuns: 3,
-        onProgress: (message) => {
-          if (myGeneration === generation) statusEl.textContent = `${backend}: ${message}`;
-        },
         onLog: (message) => {
           if (myGeneration === generation) logger.log(message);
         },
@@ -156,7 +158,7 @@ async function runAll(): Promise<void> {
           card.metricLoadEl, 'Load + compile',
           record.metrics ? record.metrics.load_and_compile_ms : null, !isFull);
       renderMetricRow(
-          card.metricInferenceEl, 'Inference',
+          card.metricInferenceEl, inferenceLabel(record.metrics?.inference_times.length),
           record.metrics ? record.metrics.median_ms : null, !isFull);
 
       console.log(backend, record);
@@ -165,27 +167,22 @@ async function runAll(): Promise<void> {
       if (myGeneration !== generation || !cards.has(backend)) continue;
       const errorMessage = e instanceof Error ? e.message : String(e);
       renderReceiptBadge(card.receiptEl, 'failed', [], errorMessage);
-      statusEl.textContent = `${backend}: ${errorMessage}`;
       logger.log(`${backend}: ${errorMessage}`);
     }
-  }
-
-  if (myGeneration === generation) {
-    statusEl.textContent = `done · measured sequentially on @litertjs/core@${currentLitertVersion} · 3 warmup runs · ${currentIterations} inference runs`;
   }
 }
 
 captureButton.addEventListener('click', () => {
   void (async () => {
     captureButton.disabled = true;
-    statusEl.textContent = 'requesting camera…';
+    logger.log('requesting camera…');
     try {
       lastFrame?.close();
       lastFrame = await captureOneFrame();
-      statusEl.textContent = 'snapshot captured';
+      logger.log('snapshot captured');
       await runAll();
     } catch (e) {
-      statusEl.textContent = e instanceof Error ? `camera error: ${e.message}` : String(e);
+      logger.log(e instanceof Error ? `camera error: ${e.message}` : String(e));
     } finally {
       captureButton.disabled = false;
     }
@@ -223,7 +220,7 @@ setupInferenceCount();
 // Reconcile cards on load so the grid shows the default selection's empty
 // cards immediately, even before the first capture.
 reconcileCards();
-statusEl.textContent = 'click "Take snapshot & run" to start — requires camera permission';
+logger.log('click "Take snapshot & run" to start — requires camera permission');
 
 window.addEventListener('beforeunload', () => {
   for (const backend of [...cards.keys()]) destroyCard(backend);

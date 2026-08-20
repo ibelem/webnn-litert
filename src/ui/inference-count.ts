@@ -14,9 +14,9 @@ export function setupInferenceCount(): void {
     return;
   }
 
-  // Find the legend element within the parent fieldset
-  const fieldset = controlDiv.closest('fieldset');
-  const legend = fieldset?.querySelector('legend');
+  // Find the title element within the parent controls group
+  const group = controlDiv.closest('.demo-controls-group');
+  const legend = group?.querySelector('.demo-controls-group__title');
 
   // Initialize from URL parameter if present
   const params = new URLSearchParams(location.search);
