@@ -245,13 +245,17 @@ a:hover {
   transition: transform 0.3s var(--ease-smooth);
 }
 
+/* :has(a:focus-visible), not :focus-within — :focus-within also matches a
+ * plain mouse click or a bfcache-restored focus on the card's <a>, neither
+ * of which trips the a:focus-visible rules below (thumb zoom, title color).
+ * Same trigger on both halves so the card can't end up half-lit. */
 .demo-card:hover,
-.demo-card:focus-within {
+.demo-card:has(a:focus-visible) {
   box-shadow: var(--shadow-md);
 }
 
 .demo-card:hover::before,
-.demo-card:focus-within::before {
+.demo-card:has(a:focus-visible)::before {
   transform: scaleX(1);
 }
 
@@ -318,7 +322,7 @@ a:hover {
 }
 
 .demo-card:hover .demo-card__cta,
-.demo-card:focus-within .demo-card__cta {
+.demo-card:has(a:focus-visible) .demo-card__cta {
   opacity: 0.8;
   transform: translate(0, 0) scale(1);
 }
