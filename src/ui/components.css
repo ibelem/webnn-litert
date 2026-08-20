@@ -425,6 +425,14 @@
   grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
 }
 
+.compare-grid:empty::before {
+  content: "Select a backend to start";
+  padding: var(--space-4);
+  color: var(--color-fg-muted);
+  border: var(--border-hairline) dashed var(--color-border);
+  border-radius: var(--radius);
+}
+
 .compare-card {
   border: var(--border-hairline) solid var(--color-border);
   border-radius: var(--radius);

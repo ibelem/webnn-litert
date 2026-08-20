@@ -4,14 +4,16 @@
  * Supports URL parameter: ?inference=N
  */
 
+const DEFAULT_INFERENCE_COUNT = 50;
+
 /** Resolves the run count a page should start with — the slider's default
- *  (1) or a valid `?inference=` override. Read this BEFORE constructing the
+ *  (50) or a valid `?inference=` override. Read this BEFORE constructing the
  *  compare controller so its first run matches what the slider displays;
  *  compare-controller.ts has no other way to learn this since setup runs
  *  after it's constructed and only reacts to the user changing the slider. */
 export function getInitialInferenceCount(): number {
   const value = parseInt(new URLSearchParams(location.search).get('inference') ?? '', 10);
-  return !isNaN(value) && value >= 1 && value <= 1000 ? value : 1;
+  return !isNaN(value) && value >= 1 && value <= 1000 ? value : DEFAULT_INFERENCE_COUNT;
 }
 
 export function setupInferenceCount(): void {

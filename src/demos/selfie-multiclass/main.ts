@@ -7,7 +7,7 @@
  * comment for why that hook wasn't added preemptively for one caller.
  */
 import {DEFAULT_LITERT_VERSION} from '../../runner/loader';
-import {BACKENDS, DEFAULT_BACKEND, isBackend, type Backend} from '../../runner/types';
+import {BACKENDS, isBackend, type Backend} from '../../runner/types';
 import {renderMetricRow} from '../../ui/metric-row';
 import {renderReceiptBadge} from '../../ui/receipt-badge';
 import {createLogger} from '../../ui/log-status';
@@ -30,8 +30,6 @@ const params = new URLSearchParams(location.search);
 const urlBackends = params.get('backend')?.split(',').map((s) => s.trim()).filter(isBackend);
 if (urlBackends?.length) {
   for (const box of backendBoxes) box.checked = urlBackends.includes(box.value as Backend);
-} else {
-  for (const box of backendBoxes) box.checked = box.value === DEFAULT_BACKEND;
 }
 const litertVersion = params.get('litertjs') ?? DEFAULT_LITERT_VERSION;
 
@@ -217,10 +215,10 @@ setupLiteRtVersionDropdown();
 // Setup inference count control
 setupInferenceCount();
 
-// Reconcile cards on load so the grid shows the default selection's empty
-// cards immediately, even before the first capture.
+// Reconcile cards on load in case a `?backend=` URL param pre-checked boxes;
+// otherwise the grid stays empty and shows its "select a backend" placeholder.
 reconcileCards();
-logger.log('click "Take snapshot & run" to start — requires camera permission');
+logger.log('select a backend, then click "Take Snapshot & Run" — requires camera permission');
 
 window.addEventListener('beforeunload', () => {
   for (const backend of [...cards.keys()]) destroyCard(backend);
