@@ -64,9 +64,17 @@ function createCard(backend: Backend): Card {
   wrap.className = 'compare-card';
   wrap.dataset.backend = backend;
 
+  const header = document.createElement('div');
+  header.className = 'compare-card__header';
+
   const label = document.createElement('div');
   label.className = 'compare-card__label';
   label.textContent = backend;
+
+  const receiptEl = document.createElement('div');
+  receiptEl.className = 'receipt-badge';
+
+  header.append(label, receiptEl);
 
   const stageWrap = document.createElement('div');
   stageWrap.className = 'compare-card__stage';
@@ -75,16 +83,13 @@ function createCard(backend: Backend): Card {
   canvas.height = 384;
   stageWrap.append(canvas);
 
-  const receiptEl = document.createElement('div');
-  receiptEl.className = 'receipt-badge';
-
   const metrics = document.createElement('div');
   metrics.className = 'compare-card__metrics';
   const metricLoadEl = document.createElement('div');
   const metricInferenceEl = document.createElement('div');
   metrics.append(metricLoadEl, metricInferenceEl);
 
-  wrap.append(label, stageWrap, receiptEl, metrics);
+  wrap.append(header, stageWrap, metrics);
   gridEl.append(wrap);
 
   return {stage: new SelfieMulticlassStage(canvas), receiptEl, metricLoadEl, metricInferenceEl};
