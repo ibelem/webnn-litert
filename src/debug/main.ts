@@ -206,7 +206,7 @@ async function run(): Promise<void> {
     return;
   }
   if (!backends.length) {
-    statusEl.textContent = 'select at least one backend';
+    statusEl.textContent = 'Select at least one backend';
     return;
   }
 

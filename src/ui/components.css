@@ -29,7 +29,6 @@
 
 /* Site footer */
 .site-footer {
-  margin-top: var(--space-4);
   padding: var(--space-4) var(--space-4);
   background: var(--color-surface);
   text-align: center;
@@ -62,6 +61,7 @@
 
 .receipt-badge__text {
   font-size: var(--text-xs);
+  padding: 0 var(--space-2);
 }
 
 .receipt-badge__detail {

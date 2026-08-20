@@ -20,6 +20,9 @@ export interface DemoEntry {
   backends: readonly Backend[];
   /** False until the demo's visual stage exists. Home page shows it as pending. */
   implemented: boolean;
+  /** Home page card thumbnail — public/images/home/<slug>.{jpg,png}. Optional
+   *  so a newly added demo without art yet still renders a card. */
+  thumbnail?: string;
   /**
    * NOT CURRENTLY CONSUMED BY ANY CODE. Left here as a documented future
    * requirement, not a live setting — no stage reads this field.
@@ -43,53 +46,58 @@ export const DEMOS: readonly DemoEntry[] = [
   {
     slug: 'mobilenetv2',
     title: 'MobileNetV2',
-    blurb: 'Image classification, top-5.',
+    blurb: 'Image classification, top-5',
     model: {
       url: 'https://huggingface.co/webnn/torchvision-mobilenet-v2/resolve/main/tflite/model.tflite',
       labels: 'https://huggingface.co/webnn/torchvision-mobilenet-v2/resolve/main/tflite/imagenet_labels.txt',
     },
     backends: BACKENDS,
     implemented: true,
+    thumbnail: '/images/home/mobilenetv2.jpg',
   },
   {
     slug: 'selfie-multiclass',
     title: 'Selfie Segmentation',
-    blurb: 'One webcam snapshot, multiclass segmentation at 256x256.',
+    blurb: 'Multiclass segmentation at 256x256',
     model: {
       url: 'https://huggingface.co/webnn/selfie-multiclass-256x256/resolve/main/tflite/model.tflite',
     },
     backends: BACKENDS,
     implemented: true,
+    thumbnail: '/images/home/selfie-multiclass.png',
   },
   {
     slug: 'efficientvit-seg',
     title: 'EfficientViT Segmentation',
-    blurb: 'ADE20K scene segmentation at 512x512.',
+    blurb: 'ADE20K scene segmentation at 512x512',
     model: {
       url: 'https://huggingface.co/webnn/efficientvit-seg-l2-ade20k-r512x512/resolve/main/tflite/model.tflite',
     },
     backends: BACKENDS,
     implemented: true,
+    thumbnail: '/images/home/efficientvit-seg.png',
   },
   {
     slug: 'depth-anything',
     title: 'Depth Anything V2',
-    blurb: 'Monocular depth. int8 weights — the shape NPUs are happiest with.',
+    blurb: 'Monocular depth. int8 weights',
     model: {
       url: 'https://huggingface.co/webnn/depth-anything-v2-small/resolve/main/tflite/depth_anything_v2_small_wi8_afp32.tflite',
     },
     backends: BACKENDS,
     implemented: true,
+    thumbnail: '/images/home/depth-anything.jpg',
   },
   {
     slug: 'real-esrgan',
     title: 'Real-ESRGAN x4',
-    blurb: '4x super-resolution upscaling, one tile.',
+    blurb: '4x super-resolution upscaling, one tile',
     model: {
       url: 'https://huggingface.co/webnn/Real-ESRGAN-x4plus/resolve/main/tflite/model.tflite',
     },
     backends: BACKENDS,
     implemented: true,
+    thumbnail: '/images/home/real-esrgan.jpg',
     // Unused — see the field's doc comment above. Arbitrary-image tiling
     // (what would make this field meaningful) wasn't built.
     maxCompareInput: {width: 256, height: 256},

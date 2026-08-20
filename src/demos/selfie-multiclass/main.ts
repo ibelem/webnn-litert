@@ -133,7 +133,7 @@ async function runAll(): Promise<void> {
   const backends = selectedBackends();
 
   if (!backends.length) {
-    logger.log('select at least one backend');
+    logger.log('Select at least one backend');
     return;
   }
   for (const backend of backends) {

@@ -21,9 +21,7 @@
     <h1>Depth Anything V2 (Small)</h1>
     <p class="demo-lede">
       Monocular depth estimation. int8 weights (<code>wi8_afp32</code>) — the shape NPUs
-      are happiest with, unlike the fp32 MobileNetV2 spike. Sample image:
-      <a href="https://commons.wikimedia.org/wiki/File:Welsh_Springer_Spaniel.jpg">Wikimedia
-      Commons</a>.
+      are happiest with.
     </p>
   </div>
 
@@ -35,7 +33,7 @@
           <label><input type="checkbox" name="backend" value="webgpu"> WebGPU</label>
           <label><input type="checkbox" name="backend" value="webnn-gpu"> WebNN GPU</label>
           <label><input type="checkbox" name="backend" value="webnn-npu"> WebNN NPU</label>
-          <label><input type="checkbox" name="backend" value="wasm"> WASM (CPU baseline)</label>
+          <label><input type="checkbox" name="backend" value="wasm"> Wasm (CPU baseline)</label>
         </div>
         <div class="demo-controls-group" role="group" aria-label="Inference Count">
           <div class="demo-controls-group__title">Inference Count (50)</div>

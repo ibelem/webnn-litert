@@ -24,7 +24,6 @@
 
 /* Site footer */
 .site-footer {
-  margin-top: var(--space-4);
   padding: var(--space-4) var(--space-4);
   background: var(--color-surface);
   text-align: center;
@@ -48,15 +47,15 @@
 }
 
 .wrap {
-  max-width: 68rem;
+  max-width: 80rem;
   margin: 0 auto;
-  padding: var(--space-7) var(--space-4);
+  padding: var(--space-6) var(--space-4);
 }
 
 /* Hero section with enhanced visual hierarchy */
 .hero {
   text-align: center;
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-2);
 }
 
 .hero h1 {
@@ -131,13 +130,58 @@ a:hover {
 }
 
 .demo-card {
+  /* A gentle, symmetric ease (Material's "standard" curve) instead of an
+   * expo-out — expo decelerates so hard from a dead stop that hover-in reads
+   * as a flung-then-caught snap, and reversing it for hover-out (the same
+   * curve runs backwards) snaps just as hard at the very end. */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
   border: var(--border-hairline) solid var(--color-border);
   border-radius: var(--radius);
-  padding: var(--space-5);
   background: var(--color-surface);
-  transition: all 0.3s ease;
+  transition: transform 0.3s var(--ease-smooth), box-shadow 0.3s var(--ease-smooth),
+      border-color 0.3s var(--ease-smooth);
   position: relative;
   overflow: hidden;
+}
+
+.demo-card__thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  background: var(--color-bg-subtle);
+  /* This (the base rule) is what governs hover-OUT — it's what applies once
+   * :hover/:focus-visible stop matching. Kept a touch slower than hover-in
+   * below so the zoom settles back gracefully instead of snapping. */
+  transition: transform 0.9s var(--ease-smooth);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.demo-card a:hover .demo-card__thumb,
+.demo-card a:focus-visible .demo-card__thumb {
+  transform: scale(1.2);
+  /* Hover-IN: its own (quicker) duration, declared here because this rule is
+   * what's active the moment the state starts matching. Ease-IN (not
+   * --ease-smooth's symmetric ease-in-out) so the zoom starts slow and
+   * accelerates, rather than slow-fast-slow. */
+  transition: transform 0.6s cubic-bezier(0.4, 0, 1, 1);
+}
+
+.demo-card__body {
+  padding: var(--space-5);
+}
+
+/* Title + blurb over the photo itself, for cards with a thumbnail — a scrim
+ * gradient keeps them readable over an arbitrary image. */
+.demo-card__overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: var(--space-6) var(--space-4) var(--space-4);
+  background: var(--photo-scrim);
 }
 
 .demo-card::before {
@@ -148,25 +192,25 @@ a:hover {
   right: 0;
   height: var(--space-1);
   background: linear-gradient(-90deg, var(--wn-purple), var(--wn-navy));
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s var(--ease-smooth);
 }
 
-.demo-card:hover {
-  transform: translateY(-2px);
+.demo-card:hover,
+.demo-card:focus-within {
   box-shadow: var(--shadow-md);
-  border-color: var(--wn-navy);
 }
 
-.demo-card:hover::before {
-  opacity: 1;
+.demo-card:hover::before,
+.demo-card:focus-within::before {
+  transform: scaleX(1);
 }
 
 .demo-card h2 {
   font-size: var(--text-lg);
-  margin-bottom: var(--space-2);
   color: var(--wn-navy);
-  transition: color 0.2s ease;
+  transition: color 0.3s var(--ease-smooth);
 }
 
 .demo-card p {
@@ -176,32 +220,58 @@ a:hover {
   line-height: var(--leading-normal);
 }
 
+.demo-card__overlay h2 {
+  color: var(--photo-fg);
+}
+
+.demo-card__overlay p {
+  color: var(--photo-fg-muted);
+}
+
 .demo-card a {
   display: block;
   color: inherit;
   text-decoration: none;
 }
 
-.demo-card a:hover h2 {
+.demo-card a:hover h2,
+.demo-card a:focus-visible h2 {
   color: var(--wn-pink);
 }
 
-/* Demo card icon/indicator */
-.demo-card::after {
-  content: '→';
+.demo-card a:hover .demo-card__overlay h2,
+.demo-card a:focus-visible .demo-card__overlay h2 {
+  color: var(--photo-fg);
+}
+
+/* Open-affordance chip, floating over the thumbnail — a backdrop circle so
+ * an SVG stroke icon (not a `::after` Unicode glyph, which can't take
+ * stroke-width or line caps) stays legible over an arbitrary photo. */
+.demo-card__cta {
   position: absolute;
-  top: var(--space-5);
-  right: var(--space-5);
-  font-size: var(--text-lg);
-  color: var(--wn-pink);
-  opacity: 0;
-  transform: translateX(-8px);
-  transition: all 0.3s ease;
+  bottom: var(--space-5);
+  right: var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-6);
+  height: var(--space-6);
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  opacity: 0.2;
+  transform: translate(-0.15rem, 0.15rem) scale(0.85);
+  transition: opacity 0.25s var(--ease-smooth) 0.05s, transform 0.25s var(--ease-smooth) 0.05s;
 }
 
-.demo-card:hover::after {
-  opacity: 1;
-  transform: translateX(0);
+.demo-card__cta-icon {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.demo-card:hover .demo-card__cta,
+.demo-card:focus-within .demo-card__cta {
+  opacity: 0.8;
 }
 
 /* Pending demos are visibly not-yet-built rather than hidden, so the home page
@@ -212,8 +282,7 @@ a:hover {
   background: var(--color-bg-subtle);
 }
 
-.demo-card[data-pending='true']::before,
-.demo-card[data-pending='true']::after {
+.demo-card[data-pending='true']::before {
   display: none;
 }
 

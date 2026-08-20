@@ -173,6 +173,13 @@
   --shadow-md: 0 4px 6px rgb(0 0 0 / 7%);
   --shadow-lg: 0 8px 24px rgb(0 0 0 / 8%);
   --shadow-xl: 0 12px 32px rgb(0 0 0 / 10%);
+
+  /* Text-over-photo overlay (demo card thumbnails) — a property of the photo,
+   * not the site chrome, so it doesn't swap with light/dark like the tokens
+   * above. */
+  --photo-scrim: linear-gradient(to top, rgb(0 0 0 / 85%) 0%, rgb(0 0 0 / 45%) 55%, rgb(0 0 0 / 0%) 100%);
+  --photo-fg: rgb(255 255 255 / 97%);
+  --photo-fg-muted: rgb(255 255 255 / 80%);
 }
 
 /* Dark: system preference, unless explicitly opted into light. */
