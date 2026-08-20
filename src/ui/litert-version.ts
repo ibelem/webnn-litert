@@ -109,13 +109,19 @@ export async function setupLiteRtVersionDropdown(): Promise<void> {
       }
     });
     
-    // Dispatch initial event
+    // Sole trigger for a page's very first run — see each demo's main.ts,
+    // which relies on this instead of also calling runAll() itself
+    // (that would double-log "select at least one backend" on every load).
     dispatchVersionChangedEvent(select.value);
     
   } catch (error) {
     console.error('Failed to setup version dropdown:', error);
     select.innerHTML = `<option value="${DEFAULT_LITERT_VERSION}">${DEFAULT_LITERT_VERSION}</option>`;
     select.disabled = false;
+    // Still the sole trigger for a page's first run (see the success path's
+    // "Dispatch initial event") — a registry outage must not leave the page
+    // permanently un-run.
+    dispatchVersionChangedEvent(DEFAULT_LITERT_VERSION);
   }
 }
 

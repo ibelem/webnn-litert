@@ -37,6 +37,8 @@ for (const box of document.querySelectorAll<HTMLInputElement>('input[name="backe
   box.addEventListener('change', () => void controller.runAll());
 }
 
-void controller.runAll();
+// setupLiteRtVersionDropdown() dispatches the initial litertVersionChanged
+// event that starts the first run — no separate runAll() call here, or
+// "select at least one backend" logs twice on every load.
 
 window.addEventListener('beforeunload', () => controller.dispose());
