@@ -13,9 +13,9 @@ import type {Delegation} from '../runner/types';
  * badge must not read as broken when it appears.
  */
 const DELEGATION_TEXT: Record<Delegation, string> = {
-  full: 'Fully delegated',
-  partial: 'Partially delegated — some ops ran on CPU',
-  failed: 'Did not run',
+  full: 'Fully Delegated',
+  partial: 'Partially Delegated',
+  failed: 'Failed',
 };
 
 export function renderReceiptBadge(
