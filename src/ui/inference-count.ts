@@ -4,6 +4,16 @@
  * Supports URL parameter: ?inference=N
  */
 
+/** Resolves the run count a page should start with — the slider's default
+ *  (1) or a valid `?inference=` override. Read this BEFORE constructing the
+ *  compare controller so its first run matches what the slider displays;
+ *  compare-controller.ts has no other way to learn this since setup runs
+ *  after it's constructed and only reacts to the user changing the slider. */
+export function getInitialInferenceCount(): number {
+  const value = parseInt(new URLSearchParams(location.search).get('inference') ?? '', 10);
+  return !isNaN(value) && value >= 1 && value <= 1000 ? value : 1;
+}
+
 export function setupInferenceCount(): void {
   const slider = document.getElementById('inference-count') as HTMLInputElement;
   const controlDiv = document.querySelector('.inference-count-control');
@@ -18,17 +28,12 @@ export function setupInferenceCount(): void {
   const group = controlDiv.closest('.demo-controls-group');
   const legend = group?.querySelector('.demo-controls-group__title');
 
-  // Initialize from URL parameter if present
-  const params = new URLSearchParams(location.search);
-  const urlInference = params.get('inference');
-  if (urlInference) {
-    const value = parseInt(urlInference, 10);
-    if (!isNaN(value) && value >= 1 && value <= 1000) {
-      slider.value = value.toString();
-      updateLegend(value);
-      updateActivePreset(value);
-    }
-  }
+  // Reflect the resolved value (default or URL override) in the slider UI —
+  // getInitialInferenceCount() already told the controller what to use.
+  const initial = getInitialInferenceCount();
+  slider.value = initial.toString();
+  updateLegend(initial);
+  updateActivePreset(initial);
 
   // Update legend when slider changes
   slider.addEventListener('input', () => {
@@ -50,10 +55,6 @@ export function setupInferenceCount(): void {
       dispatchInferenceCountEvent(value);
     });
   });
-
-  // Initialize legend and active state
-  updateLegend(parseInt(slider.value, 10));
-  updateActivePreset(parseInt(slider.value, 10));
 
   function updateLegend(value: number): void {
     if (legend) {

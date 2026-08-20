@@ -1,9 +1,8 @@
 import {DEFAULT_LITERT_VERSION} from '../../runner/loader';
 import {createCompareController} from '../../runner/compare-controller';
-import {DEFAULT_BACKEND} from '../../runner/types';
 import {EfficientVitStage} from './stage';
 import {setupLiteRtVersionDropdown} from '../../ui/litert-version';
-import {setupInferenceCount} from '../../ui/inference-count';
+import {getInitialInferenceCount, setupInferenceCount} from '../../ui/inference-count';
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
@@ -18,6 +17,7 @@ const controller = createCompareController({
   gridEl: el('compare-grid'),
   backendBoxes: [...document.querySelectorAll<HTMLInputElement>('input[name="backend"]')],
   litertVersion,
+  iterations: getInitialInferenceCount(),
   logStatusEl: el('log-status'),
   createStage: (canvas) => ({
     stage: new EfficientVitStage(canvas),
@@ -25,7 +25,7 @@ const controller = createCompareController({
   }),
 });
 
-controller.applyUrlBackendSelection(DEFAULT_BACKEND);
+controller.applyUrlBackendSelection(null);
 
 // Setup LiteRT version dropdown
 setupLiteRtVersionDropdown();

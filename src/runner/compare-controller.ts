@@ -52,7 +52,12 @@ export function createCompareController(opts: CompareControllerOptions) {
   const {
     gridEl, backendBoxes, litertVersion, logStatusEl, createStage,
     canvasWidth = 384, canvasHeight = 384,
-    iterations = 10, warmupRuns = 3,
+    // 1 matches the inference-count slider's own HTML default — a caller
+    // should really pass ui/inference-count.ts's getInitialInferenceCount()
+    // instead of relying on this, so a `?inference=` URL override is honored
+    // from the first run rather than only after the visitor touches the
+    // slider. This is a fallback for callers that don't.
+    iterations = 1, warmupRuns = 3,
   } = opts;
 
   interface Card {
@@ -207,7 +212,10 @@ export function createCompareController(opts: CompareControllerOptions) {
     }
   }
 
-  function applyUrlBackendSelection(defaultBackend: Backend): void {
+  /** `defaultBackend: null` leaves every box unchecked absent a `?backend=`
+   *  param — so the page never auto-runs on load; the visitor's first
+   *  checkbox click is what starts anything. */
+  function applyUrlBackendSelection(defaultBackend: Backend | null): void {
     const params = new URLSearchParams(location.search);
     const urlBackends = params.get('backend')?.split(',').map((s) => s.trim()).filter(isBackend);
     if (urlBackends?.length) {

@@ -13,7 +13,7 @@ import {renderReceiptBadge} from '../../ui/receipt-badge';
 import {createLogger} from '../../ui/log-status';
 import {captureOneFrame, SelfieMulticlassStage} from './stage';
 import {setupLiteRtVersionDropdown} from '../../ui/litert-version';
-import {setupInferenceCount} from '../../ui/inference-count';
+import {getInitialInferenceCount, setupInferenceCount} from '../../ui/inference-count';
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
@@ -45,7 +45,7 @@ interface Card {
 const cards = new Map<Backend, Card>();
 let lastFrame: ImageBitmap | null = null;
 let generation = 0;
-let currentIterations = 10;
+let currentIterations = getInitialInferenceCount();
 let currentLitertVersion = litertVersion;
 const logger = createLogger(logStatusEl);
 
