@@ -463,6 +463,12 @@
   border-radius: var(--radius-sm);
 }
 
+/* mobilenetv2's DOM-rendered stage — a flex item with no intrinsic width
+ * of its own, unlike canvas which sizes from its width/height attributes. */
+.classification-container {
+  width: 100%;
+}
+
 .compare-card__metrics {
   display: flex;
   flex-direction: column;
