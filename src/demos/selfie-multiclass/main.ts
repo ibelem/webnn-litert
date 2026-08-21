@@ -39,7 +39,6 @@ const litertVersion = params.get('litertjs') ?? DEFAULT_LITERT_VERSION;
 
 interface Card {
   stage: SelfieMulticlassStage;
-  canvasEl: HTMLCanvasElement;
   receiptEl: HTMLDivElement;
   metricLoadEl: HTMLDivElement;
   metricInferenceEl: HTMLDivElement;
@@ -76,12 +75,15 @@ let currentIterations = getInitialInferenceCount();
 let currentLitertVersion = litertVersion;
 const logger = createLogger(logStatusEl);
 
-/** Sizes a card's canvas to match the captured frame's aspect ratio
- *  (falls back to a square before anything's been captured). Resizing the
- *  placeholder <canvas>'s width/height after transferControlToOffscreen()
- *  is the documented way to resize an already-transferred OffscreenCanvas —
- *  render.ts already scales its draw to whatever ctx.canvas.width/height
- *  currently is, so this is the only piece needed. */
+/** Sizes a FRESH card's canvas to match the captured frame's aspect ratio
+ *  (falls back to a square before anything's been captured). Must run
+ *  before `new SelfieMulticlassStage(canvas)` transfers it — Chrome throws
+ *  ("Cannot resize canvas after call to transferControlToOffscreen()") on
+ *  setting .width/.height afterward. So this only ever runs once per
+ *  canvas, at creation — an existing card's canvas keeps whatever ratio it
+ *  was created with until that backend is unchecked and rechecked, even if
+ *  a later capture has a different shape (unlikely here in practice:
+ *  captureOneFrame always requests the same 640x480). */
 function resizeCanvasToFrame(canvas: HTMLCanvasElement): void {
   const {width, height} = lastFrame
       ? fitCanvasSize(lastFrame.width, lastFrame.height, CANVAS_MAX_DIMENSION)
@@ -136,9 +138,7 @@ function createCard(backend: Backend): Card {
   wrap.append(header, stageWrap, metrics);
   gridEl.append(wrap);
 
-  return {
-    stage: new SelfieMulticlassStage(canvas), canvasEl: canvas, receiptEl, metricLoadEl, metricInferenceEl,
-  };
+  return {stage: new SelfieMulticlassStage(canvas), receiptEl, metricLoadEl, metricInferenceEl};
 }
 
 function destroyCard(backend: Backend): void {
@@ -186,8 +186,6 @@ async function runAll(): Promise<void> {
     if (myGeneration !== generation) return;
     const card = cards.get(backend);
     if (!card || !lastFrame) continue;
-
-    resizeCanvasToFrame(card.canvasEl);
 
     try {
       await card.stage.setFrame(lastFrame);

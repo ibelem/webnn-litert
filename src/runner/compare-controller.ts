@@ -70,20 +70,23 @@ export function createCompareController(opts: CompareControllerOptions) {
 
   interface Card {
     stage: StageLike;
-    canvasEl: HTMLCanvasElement;
     receiptEl: HTMLDivElement;
     metricLoadEl: HTMLDivElement;
     metricInferenceEl: HTMLDivElement;
   }
 
-  /** Resizing the placeholder <canvas>'s width/height AFTER
-   *  transferControlToOffscreen() is the documented way to resize an
-   *  already-transferred OffscreenCanvas from the main thread — it does
-   *  not re-run transferControlToOffscreen (only callable once, per
-   *  CLAUDE.md) and does not need a 2D context on this element, which is
-   *  gone after transfer. Draws (render.ts) already scale to whatever
-   *  ctx.canvas.width/height currently is, so this is the only piece
-   *  needed to make the canvas match the source's aspect ratio. */
+  /** Sizes a FRESH canvas to match the current source image's aspect ratio.
+   *  Must run before createStage() transfers it — Chrome throws
+   *  ("Cannot resize canvas after call to transferControlToOffscreen()") on
+   *  setting .width/.height on an already-transferred canvas, contrary to
+   *  what CLAUDE.md's "cannot draw to it" note might suggest still leaves
+   *  resizing open. So this only ever runs once per canvas, at creation —
+   *  an existing card's canvas keeps whatever ratio it was created with
+   *  until that backend is unchecked and rechecked (recreating the card),
+   *  even if a later upload/capture has a different shape. Reshaping an
+   *  existing card without that costly recreate (which would also lose its
+   *  cached/compiled model) would need the worker itself to resize its own
+   *  OffscreenCanvas — future work, not done here. */
   function resizeCanvasToSource(canvas: HTMLCanvasElement): void {
     const source = getSourceSize?.();
     const {width, height} = source
@@ -172,7 +175,7 @@ export function createCompareController(opts: CompareControllerOptions) {
     wrap.append(header, stageWrap, metrics);
     gridEl.append(wrap);
 
-    return {stage, canvasEl: canvas, receiptEl, metricLoadEl, metricInferenceEl};
+    return {stage, receiptEl, metricLoadEl, metricInferenceEl};
   }
 
   function destroyCard(backend: Backend): void {
@@ -213,8 +216,6 @@ export function createCompareController(opts: CompareControllerOptions) {
       if (myGeneration !== generation) return; // superseded by a newer selection
       const card = cards.get(backend);
       if (!card) continue;
-
-      resizeCanvasToSource(card.canvasEl);
 
       try {
         const record = await card.stage.run({
