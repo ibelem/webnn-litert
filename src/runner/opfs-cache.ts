@@ -81,20 +81,29 @@ export async function loadModelBytesCached(
   if (cacheKey) {
     const cached = await getFromOpfs(cacheKey);
     if (cached && (expectedSize === 0 || cached.byteLength === expectedSize)) {
-      onLog?.(`Loaded ${fileName} from OPFS cache (${(cached.byteLength / 1_048_576).toFixed(1)} MB)`);
-      return {bytes: cached, loadMs: performance.now() - started, fromCache: true};
+      const loadMs = performance.now() - started;
+      onLog?.(
+          `read ${fileName} from OPFS cache — ${(cached.byteLength / 1_048_576).toFixed(1)} MB ` +
+          `in ${loadMs.toFixed(0)}ms`);
+      return {bytes: cached, loadMs, fromCache: true};
     }
   }
 
+  onLog?.(`downloading ${fileName}…`);
+  const downloadStarted = performance.now();
   const res = await fetchModelWithMirrorFallback(url);
   if (!res.ok) throw new Error(`model fetch ${res.status} — ${url}`);
   const data = await readWithProgress(res, (p) => onProgress?.(p));
   const bytes = data.buffer as ArrayBuffer;
+  const downloadMs = performance.now() - downloadStarted;
+  onLog?.(
+      `downloaded ${fileName} — ${(bytes.byteLength / 1_048_576).toFixed(1)} MB ` +
+      `in ${downloadMs.toFixed(0)}ms`);
 
   if (cacheKey) {
     try {
       await saveToOpfs(cacheKey, bytes);
-      onLog?.(`Saved ${fileName} to OPFS cache`);
+      onLog?.(`saved ${fileName} to OPFS cache`);
     } catch {
       // Best effort — quota or private-browsing failures don't fail the run.
     }
