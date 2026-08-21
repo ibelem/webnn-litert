@@ -23,6 +23,7 @@ function el<T extends HTMLElement>(id: string): T {
 
 const gridEl = el<HTMLDivElement>('compare-grid');
 const captureButton = el<HTMLButtonElement>('capture');
+const snapshotPreview = el<HTMLImageElement>('snapshot-preview');
 const logStatusEl = el<HTMLDivElement>('log-status');
 const backendBoxes = [...document.querySelectorAll<HTMLInputElement>('input[name="backend"]')];
 
@@ -42,7 +43,31 @@ interface Card {
 
 const cards = new Map<Backend, Card>();
 let lastFrame: ImageBitmap | null = null;
+let previewUrl: string | null = null;
 let generation = 0;
+
+/**
+ * ImageBitmap has no displayable URL of its own — draw it to a scratch
+ * canvas and export a blob URL so the sidebar preview (sized like
+ * mobilenetv2's `#demo-image` via the shared `.sample-image img` rule) can
+ * show exactly what was captured, above the button that captured it.
+ */
+async function showSnapshotPreview(bitmap: ImageBitmap): Promise<void> {
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('2D context unavailable for snapshot preview');
+  ctx.drawImage(bitmap, 0, 0);
+
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve));
+  if (!blob) throw new Error('canvas.toBlob failed for snapshot preview');
+
+  if (previewUrl) URL.revokeObjectURL(previewUrl);
+  previewUrl = URL.createObjectURL(blob);
+  snapshotPreview.src = previewUrl;
+  snapshotPreview.hidden = false;
+}
 let currentIterations = getInitialInferenceCount();
 let currentLitertVersion = litertVersion;
 const logger = createLogger(logStatusEl);
@@ -182,6 +207,7 @@ captureButton.addEventListener('click', () => {
     try {
       lastFrame?.close();
       lastFrame = await captureOneFrame();
+      await showSnapshotPreview(lastFrame);
       logger.log('snapshot captured');
       await runAll();
     } catch (e) {
@@ -228,4 +254,5 @@ logger.log('select a backend, then click "Take Snapshot & Run" — requires came
 window.addEventListener('beforeunload', () => {
   for (const backend of [...cards.keys()]) destroyCard(backend);
   lastFrame?.close();
+  if (previewUrl) URL.revokeObjectURL(previewUrl);
 });

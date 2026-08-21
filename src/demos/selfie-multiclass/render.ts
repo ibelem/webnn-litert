@@ -60,10 +60,10 @@ export function renderSelfieMulticlass(
   }
   maskCtx.putImageData(imageData, 0, 0);
 
-  // Matches the reference exactly: it draws the colored mask alone via
-  // putImageData onto its own canvas, never compositing over the original
-  // webcam frame. Same here — a solid backdrop, then the mask.
-  ctx.fillStyle = '#1a1a1a';
+  // Matches the reference's approach — a solid backdrop, then the mask,
+  // never compositing over the original webcam frame — but white instead of
+  // the reference's dark backdrop; easier to judge mask edges/colors against.
+  ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   ctx.drawImage(maskCanvas, 0, 0, ctx.canvas.width, ctx.canvas.height);
 }

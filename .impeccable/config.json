@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "broken-image",
+        "value": "selfie-multiclass.html:59",
+        "createdAt": "2026-08-21T05:24:34.622Z",
+        "reason": "img has no src by design — populated by JS after webcam capture; stays hidden until then, never renders broken"
+      }
+    ]
+  }
+}
