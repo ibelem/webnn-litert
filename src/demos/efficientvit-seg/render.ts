@@ -1,6 +1,7 @@
 import type {TensorDetails} from '@litertjs/core';
 
 import type {OutputData} from '../../runner/measure';
+import {colorizeSegmentationMask} from './colorize';
 
 /** `extra` shape: the ADE20K palette, index-aligned to the model's 150
  *  output classes — ported verbatim from the reference's
@@ -34,31 +35,7 @@ export function renderEfficientVit(
     throw new Error(`efficientvit-seg: unexpected output rank ${shape.length}, shape [${shape}]`);
   }
 
-  const maskCanvas = new OffscreenCanvas(outWidth, outHeight);
-  const maskCtx = maskCanvas.getContext('2d');
-  if (!maskCtx) throw new Error('OffscreenCanvas 2D context unavailable for rendering');
-  const imageData = maskCtx.createImageData(outWidth, outHeight);
-
-  for (let i = 0; i < outWidth * outHeight; i++) {
-    const base = i * numClasses;
-    let maxProb = -Infinity;
-    let maxClass = 0;
-    for (let c = 0; c < numClasses; c++) {
-      const v = values[base + c] ?? -Infinity;
-      if (v > maxProb) {
-        maxProb = v;
-        maxClass = c;
-      }
-    }
-    const color = palette[maxClass] ?? [128, 128, 128]; // fallback: mid-grey
-    const n = i * 4;
-    imageData.data[n] = color[0];
-    imageData.data[n + 1] = color[1];
-    imageData.data[n + 2] = color[2];
-    imageData.data[n + 3] = 255;
-  }
-  maskCtx.putImageData(imageData, 0, 0);
-
+  const maskCanvas = colorizeSegmentationMask(outWidth, outHeight, numClasses, values, palette);
   ctx.drawImage(maskCanvas, 0, 0, ctx.canvas.width, ctx.canvas.height);
 }
 

@@ -145,6 +145,62 @@ export interface MeasureOptions {
 
 const DEFAULT_COMPILE_TIMEOUT_MS = 30_000;
 
+export interface CompileResult {
+  compiled: CompiledModel;
+  delegation: Delegation;
+  warnings: string[];
+  loadAndCompileMs: number;
+}
+
+/**
+ * Compiles one backend and reports delegation truth — the part of
+ * measureBackend that a continuous/live run (compile once, then loop
+ * indefinitely instead of a fixed N iterations) needs too. Extracted so
+ * that shape of run can share this instead of duplicating the WebGPU
+ * device setup and console-warning capture, which is where partial
+ * delegation is reported (see withConsoleCapture's doc comment).
+ */
+export async function compileForBackend(
+    mod: LiteRt, backend: Backend, modelBytes: Uint8Array, signal?: AbortSignal,
+    onLog?: (message: string) => void,
+    compileTimeoutMs = DEFAULT_COMPILE_TIMEOUT_MS): Promise<CompileResult> {
+  const compileController = new AbortController();
+  const compileTimer = setTimeout(() => compileController.abort(), compileTimeoutMs);
+  const combined = anySignal([signal, compileController.signal]);
+
+  onLog?.(`Compiling model with ${backend} backend...`);
+  const started = performance.now();
+  let value: CompiledModel;
+  let warnings: string[];
+  try {
+    ({value, warnings} = await withConsoleCapture(async () => withTimeout(
+         (async () => {
+           // loadLiteRt() already auto-creates a default WebGPU device (see
+           // Environment.create() in load_litert.ts). Requesting another
+           // adapter/device here on every re-run replaces the module's
+           // default Environment without disposing the old one — the old
+           // native LiteRtEnvironment is never deleted, and the resulting
+           // churn corrupts WebGPU output on the second and later runs in
+           // the same worker (compiles fine, produces all-zero tensors).
+           // Only step in if the default device creation didn't happen.
+           if (backend === 'webgpu' && !mod.getWebGpuDevice()) {
+             const adapter = await navigator.gpu?.requestAdapter();
+             if (!adapter) throw new Error('no WebGPU adapter available');
+             mod.setWebGpuDevice(await adapter.requestDevice());
+           }
+           return mod.loadAndCompile(modelBytes, compileOptionsFor(backend));
+         })(),
+         combined, 'compile')));
+  } finally {
+    clearTimeout(compileTimer);
+  }
+  const loadAndCompileMs = performance.now() - started;
+  onLog?.(`Load+Compile Time: ${loadAndCompileMs.toFixed(2)} ms`);
+
+  const delegation: Delegation = value.isFullyAccelerated ? 'full' : 'partial';
+  return {compiled: value, delegation, warnings, loadAndCompileMs};
+}
+
 /**
  * Runs one backend end to end and returns its full record.
  *
@@ -173,41 +229,10 @@ export async function measureBackend(
     onLog?.(`Loading LiteRT.js v${litertVersion}...`);
     const mod = await ensureLiteRt(litertVersion, loadModeFor(backend), signal, onLog);
 
-    const compileController = new AbortController();
-    const compileTimer = setTimeout(() => compileController.abort(), compileTimeoutMs);
-    const combined = anySignal([signal, compileController.signal]);
-
-    onLog?.(`Compiling model with ${backend} backend...`);
-    const started = performance.now();
-    let value: CompiledModel;
-    let warnings: string[];
-    try {
-      ({value, warnings} = await withConsoleCapture(async () => withTimeout(
-           (async () => {
-             // loadLiteRt() already auto-creates a default WebGPU device (see
-             // Environment.create() in load_litert.ts). Requesting another
-             // adapter/device here on every re-run replaces the module's
-             // default Environment without disposing the old one — the old
-             // native LiteRtEnvironment is never deleted, and the resulting
-             // churn corrupts WebGPU output on the second and later runs in
-             // the same worker (compiles fine, produces all-zero tensors).
-             // Only step in if the default device creation didn't happen.
-             if (backend === 'webgpu' && !mod.getWebGpuDevice()) {
-               const adapter = await navigator.gpu?.requestAdapter();
-               if (!adapter) throw new Error('no WebGPU adapter available');
-               mod.setWebGpuDevice(await adapter.requestDevice());
-             }
-             return mod.loadAndCompile(modelBytes, compileOptionsFor(backend));
-           })(),
-           combined, 'compile')));
-    } finally {
-      clearTimeout(compileTimer);
-    }
-    const loadAndCompileMs = performance.now() - started;
-    onLog?.(`Load+Compile Time: ${loadAndCompileMs.toFixed(2)} ms`);
-
-    compiled = value;
-    const delegation: Delegation = compiled.isFullyAccelerated ? 'full' : 'partial';
+    const compileResult =
+        await compileForBackend(mod, backend, modelBytes, signal, onLog, compileTimeoutMs);
+    compiled = compileResult.compiled;
+    const {delegation, warnings, loadAndCompileMs} = compileResult;
     const details = compiled.getInputDetails();
     const outputDetails = compiled.getOutputDetails();
     const inputs = buildInputs(mod, details);
