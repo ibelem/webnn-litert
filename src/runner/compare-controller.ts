@@ -1,6 +1,7 @@
 import {renderMetricRow} from '../ui/metric-row';
 import {renderReceiptBadge} from '../ui/receipt-badge';
 import {createLogger} from '../ui/log-status';
+import {fitCanvasSize} from '../ui/canvas-size';
 import {BACKENDS, isBackend, type Backend} from './types';
 import type {RunRecord} from './types';
 
@@ -30,6 +31,13 @@ export interface CompareControllerOptions {
   createStage: (canvas: HTMLCanvasElement) => {stage: StageLike; container: HTMLElement};
   canvasWidth?: number;
   canvasHeight?: number;
+  /** Reports the current source image's natural pixel size so the canvas
+   *  can be sized to match its aspect ratio (scaled to fit canvasWidth on
+   *  the longer side) instead of a fixed square. Called at card creation
+   *  and again before every run, so re-uploading a differently-shaped
+   *  image reshapes already-existing cards too. Return null before an
+   *  image has loaded — falls back to canvasWidth x canvasHeight. */
+  getSourceSize?: () => {width: number; height: number} | null;
   iterations?: number;
   warmupRuns?: number;
 }
@@ -50,7 +58,7 @@ export interface CompareControllerOptions {
  */
 export function createCompareController(opts: CompareControllerOptions) {
   const {
-    gridEl, backendBoxes, litertVersion, logStatusEl, createStage,
+    gridEl, backendBoxes, litertVersion, logStatusEl, createStage, getSourceSize,
     canvasWidth = 384, canvasHeight = 384,
     // 1 matches the inference-count slider's own HTML default — a caller
     // should really pass ui/inference-count.ts's getInitialInferenceCount()
@@ -62,9 +70,29 @@ export function createCompareController(opts: CompareControllerOptions) {
 
   interface Card {
     stage: StageLike;
+    canvasEl: HTMLCanvasElement;
     receiptEl: HTMLDivElement;
     metricLoadEl: HTMLDivElement;
     metricInferenceEl: HTMLDivElement;
+  }
+
+  /** Resizing the placeholder <canvas>'s width/height AFTER
+   *  transferControlToOffscreen() is the documented way to resize an
+   *  already-transferred OffscreenCanvas from the main thread — it does
+   *  not re-run transferControlToOffscreen (only callable once, per
+   *  CLAUDE.md) and does not need a 2D context on this element, which is
+   *  gone after transfer. Draws (render.ts) already scale to whatever
+   *  ctx.canvas.width/height currently is, so this is the only piece
+   *  needed to make the canvas match the source's aspect ratio. */
+  function resizeCanvasToSource(canvas: HTMLCanvasElement): void {
+    const source = getSourceSize?.();
+    const {width, height} = source
+        ? fitCanvasSize(source.width, source.height, canvasWidth)
+        : {width: canvasWidth, height: canvasHeight};
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+    }
   }
 
   const cards = new Map<Backend, Card>();
@@ -131,8 +159,7 @@ export function createCompareController(opts: CompareControllerOptions) {
 
     // Create canvas for canvas-based demos, or get container from DOM-based demos
     const canvas = document.createElement('canvas');
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
+    resizeCanvasToSource(canvas);
     const {stage, container} = createStage(canvas);
     stageWrap.append(container);
 
@@ -145,7 +172,7 @@ export function createCompareController(opts: CompareControllerOptions) {
     wrap.append(header, stageWrap, metrics);
     gridEl.append(wrap);
 
-    return {stage, receiptEl, metricLoadEl, metricInferenceEl};
+    return {stage, canvasEl: canvas, receiptEl, metricLoadEl, metricInferenceEl};
   }
 
   function destroyCard(backend: Backend): void {
@@ -186,6 +213,8 @@ export function createCompareController(opts: CompareControllerOptions) {
       if (myGeneration !== generation) return; // superseded by a newer selection
       const card = cards.get(backend);
       if (!card) continue;
+
+      resizeCanvasToSource(card.canvasEl);
 
       try {
         const record = await card.stage.run({

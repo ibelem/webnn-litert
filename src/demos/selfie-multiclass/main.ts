@@ -14,6 +14,9 @@ import {createLogger} from '../../ui/log-status';
 import {captureOneFrame, SelfieMulticlassStage} from './stage';
 import {setupLiteRtVersionDropdown} from '../../ui/litert-version';
 import {getInitialInferenceCount, setupInferenceCount} from '../../ui/inference-count';
+import {fitCanvasSize} from '../../ui/canvas-size';
+
+const CANVAS_MAX_DIMENSION = 384;
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
@@ -36,6 +39,7 @@ const litertVersion = params.get('litertjs') ?? DEFAULT_LITERT_VERSION;
 
 interface Card {
   stage: SelfieMulticlassStage;
+  canvasEl: HTMLCanvasElement;
   receiptEl: HTMLDivElement;
   metricLoadEl: HTMLDivElement;
   metricInferenceEl: HTMLDivElement;
@@ -72,6 +76,22 @@ let currentIterations = getInitialInferenceCount();
 let currentLitertVersion = litertVersion;
 const logger = createLogger(logStatusEl);
 
+/** Sizes a card's canvas to match the captured frame's aspect ratio
+ *  (falls back to a square before anything's been captured). Resizing the
+ *  placeholder <canvas>'s width/height after transferControlToOffscreen()
+ *  is the documented way to resize an already-transferred OffscreenCanvas —
+ *  render.ts already scales its draw to whatever ctx.canvas.width/height
+ *  currently is, so this is the only piece needed. */
+function resizeCanvasToFrame(canvas: HTMLCanvasElement): void {
+  const {width, height} = lastFrame
+      ? fitCanvasSize(lastFrame.width, lastFrame.height, CANVAS_MAX_DIMENSION)
+      : {width: CANVAS_MAX_DIMENSION, height: CANVAS_MAX_DIMENSION};
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+}
+
 // Listen for inference count changes from the slider
 document.addEventListener('inferenceCountChanged', (e: Event) => {
   const customEvent = e as CustomEvent<{count: number}>;
@@ -104,8 +124,7 @@ function createCard(backend: Backend): Card {
   const stageWrap = document.createElement('div');
   stageWrap.className = 'compare-card__stage';
   const canvas = document.createElement('canvas');
-  canvas.width = 384;
-  canvas.height = 384;
+  resizeCanvasToFrame(canvas);
   stageWrap.append(canvas);
 
   const metrics = document.createElement('div');
@@ -117,7 +136,9 @@ function createCard(backend: Backend): Card {
   wrap.append(header, stageWrap, metrics);
   gridEl.append(wrap);
 
-  return {stage: new SelfieMulticlassStage(canvas), receiptEl, metricLoadEl, metricInferenceEl};
+  return {
+    stage: new SelfieMulticlassStage(canvas), canvasEl: canvas, receiptEl, metricLoadEl, metricInferenceEl,
+  };
 }
 
 function destroyCard(backend: Backend): void {
@@ -165,6 +186,8 @@ async function runAll(): Promise<void> {
     if (myGeneration !== generation) return;
     const card = cards.get(backend);
     if (!card || !lastFrame) continue;
+
+    resizeCanvasToFrame(card.canvasEl);
 
     try {
       await card.stage.setFrame(lastFrame);

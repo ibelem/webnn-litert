@@ -3,6 +3,7 @@ import {createCompareController} from '../../runner/compare-controller';
 import {EfficientVitStage} from './stage';
 import {setupLiteRtVersionDropdown} from '../../ui/litert-version';
 import {getInitialInferenceCount, setupInferenceCount} from '../../ui/inference-count';
+import {getCurrentImageSize} from '../../ui/image-upload';
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
@@ -23,6 +24,7 @@ const controller = createCompareController({
     stage: new EfficientVitStage(canvas),
     container: canvas,
   }),
+  getSourceSize: getCurrentImageSize,
 });
 
 controller.applyUrlBackendSelection(null);

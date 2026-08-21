@@ -14,6 +14,16 @@ export function getCurrentImageSrc(): string {
   return demoImage?.src || DEFAULT_IMAGE_SRC;
 }
 
+/** Natural pixel size of whatever image is currently shown, for sizing an
+ *  output canvas to match its aspect ratio. Null before the image has
+ *  decoded (naturalWidth/Height are 0 until then) — callers fall back to a
+ *  default size in that case. */
+export function getCurrentImageSize(): {width: number; height: number} | null {
+  const demoImage = document.getElementById('demo-image') as HTMLImageElement | null;
+  if (!demoImage || !demoImage.naturalWidth || !demoImage.naturalHeight) return null;
+  return {width: demoImage.naturalWidth, height: demoImage.naturalHeight};
+}
+
 export function setupImageUpload(): void {
   const fileInput = document.getElementById('image-upload') as HTMLInputElement;
   const demoImage = document.getElementById('demo-image') as HTMLImageElement;
@@ -38,16 +48,21 @@ export function setupImageUpload(): void {
     const reader = new FileReader();
     reader.onload = (e) => {
       const imageUrl = e.target?.result as string;
-      demoImage.src = imageUrl;
 
       // Hide the attribution text for custom images
       imageAttribution.style.display = 'none';
 
-      // Dispatch a custom event so the demo can react to the new image
-      const customEvent = new CustomEvent('imageUploaded', {
-        detail: { imageUrl, file }
-      });
-      document.dispatchEvent(customEvent);
+      // Wait for decode before announcing the upload — naturalWidth/Height
+      // (getCurrentImageSize) are 0 until the <img> has actually loaded, and
+      // a listener resizing an output canvas to match this image's aspect
+      // ratio needs those to be populated already, not a moment later.
+      demoImage.onload = () => {
+        const customEvent = new CustomEvent('imageUploaded', {
+          detail: { imageUrl, file }
+        });
+        document.dispatchEvent(customEvent);
+      };
+      demoImage.src = imageUrl;
     };
     reader.readAsDataURL(file);
   });

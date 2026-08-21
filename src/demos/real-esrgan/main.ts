@@ -3,6 +3,7 @@ import {createCompareController} from '../../runner/compare-controller';
 import {RealEsrganStage} from './stage';
 import {setupLiteRtVersionDropdown} from '../../ui/litert-version';
 import {getInitialInferenceCount, setupInferenceCount} from '../../ui/inference-count';
+import {getCurrentImageSize} from '../../ui/image-upload';
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
@@ -23,10 +24,10 @@ const controller = createCompareController({
     stage: new RealEsrganStage(canvas),
     container: canvas,
   }),
-  // The output tile is 4x the input, and this is the heaviest demo's
-  // readback per iteration — keep the default 384x384 canvas so the compare
-  // grid stays a fixed, comparable size; the model's own tile size (not
-  // this canvas) determines actual compute cost.
+  // Canvas matches the source image's aspect ratio, capped at 384 on the
+  // longer side — this is display sizing only. The model's own fixed tile
+  // size (not this canvas) determines actual compute cost, unaffected.
+  getSourceSize: getCurrentImageSize,
 });
 
 controller.applyUrlBackendSelection(null);
