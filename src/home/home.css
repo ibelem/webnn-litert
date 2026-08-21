@@ -159,28 +159,13 @@ a:hover {
   grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
 }
 
-/* Page-load entrance — a literal list appearing as a list, per animate.md's
- * sibling-stagger allowance. --card-delay (main.ts) is capped at 480ms total
- * spread regardless of grid size. */
-@keyframes demo-card-in {
-  from {
-    opacity: 0;
-    transform: translateY(0.75rem);
-  }
-}
-
 .demo-card {
-  opacity: 0;
-  animation: demo-card-in 0.5s var(--ease-smooth) forwards;
-  animation-delay: calc(200ms + var(--card-delay, 0ms));
-
   border: var(--border-hairline) solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
-  transition: transform 0.3s var(--ease-smooth), box-shadow 0.3s var(--ease-smooth),
-      border-color 0.3s var(--ease-smooth);
   position: relative;
   overflow: hidden;
+  transition: box-shadow 0.35s var(--ease-smooth), border-color 0.35s var(--ease-smooth);
 }
 
 .demo-card__thumb {
@@ -188,33 +173,29 @@ a:hover {
   width: 100%;
   aspect-ratio: 16 / 10;
   object-fit: cover;
-  background: var(--color-bg-subtle);
-  /* This (the base rule) governs hover-OUT — what applies once :hover/
-   * :focus-visible stop matching. A plain decelerate curve is already the
-   * right shape for returning to rest: it ends at low velocity, so there's
-   * no abrupt-stop problem to solve here the way there is on the way in.
-   * Faster than hover-in below ("exit faster than entrance"). */
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform;
   backface-visibility: hidden;
+  will-change: transform, filter;
+  /* Rest state: fully grayscale, not partial — a partial desaturation
+   * (e.g. grayscale(60%)) leaves muddy, undersaturated color mixed with
+   * gray, which is what reads as "dirty" rather than deliberate. contrast()
+   * counters the flatness plain grayscale + dimming otherwise introduces.
+   * Same three filter functions (grayscale/contrast/brightness), same
+   * order, as the hover state below — filter lists only interpolate
+   * smoothly when both sides match shape. This also governs hover-OUT —
+   * faster than the wake-up below, matching "exit faster than entrance." */
+  filter: grayscale(100%) contrast(1.05) brightness(0.92);
+  transform: scale(1);
+  transition: filter 0.35s var(--ease-smooth), transform 0.35s var(--ease-smooth);
 }
 
 .demo-card a:hover .demo-card__thumb,
 .demo-card a:focus-visible .demo-card__thumb {
-  transform: scale(1.2);
-  /* Hover-IN: a plain ease-in (accelerate) curve mathematically ends at
-   * MAXIMUM velocity — the transition halts abruptly at full speed, which
-   * reads as a jarring stop no matter how "correct" the acceleration feels
-   * up to that point. A two-control-point cubic-bezier can't fix this: it
-   * can only trade "ends fast" for "ends slow," not have both a long
-   * accelerating middle AND a soft landing. linear() (Chrome-only, fine
-   * here) builds that third phase explicitly: barely moving through ~45%,
-   * building speed hard through ~45-80%, then a quick ease-off from ~85%
-   * to 100% so it settles into the larger size instead of slamming into it. */
-  transition: transform 0.46s linear(
-    0, 0.008 10%, 0.03 20%, 0.07 30%, 0.14 40%, 0.25 50%, 0.4 60%, 0.58 70%,
-    0.78 80%, 0.9 87%, 0.965 93%, 0.99 97%, 1 100%
-  );
+  /* Hover-IN: the photo wakes to full color. A deliberately modest scale
+   * (1.05, not the 1.2 from an earlier pass) — the color reveal carries the
+   * "cool" factor now, so scale's easing shape barely registers at this size. */
+  filter: grayscale(0%) contrast(1) brightness(1);
+  transform: scale(1.05);
+  transition: filter 0.55s var(--ease-smooth), transform 0.55s var(--ease-smooth);
 }
 
 .demo-card__body {
@@ -232,6 +213,8 @@ a:hover {
   background: var(--photo-scrim);
 }
 
+/* Accent bar wipes in from the left on hover — the same ramp used
+ * elsewhere on the page, so the card reads as "activating." */
 .demo-card::before {
   content: '';
   position: absolute;
@@ -239,16 +222,11 @@ a:hover {
   left: 0;
   right: 0;
   height: var(--space-1);
-  background: linear-gradient(-90deg, var(--wn-purple), var(--wn-navy));
   transform: scaleX(0);
   transform-origin: left;
-  transition: transform 0.3s var(--ease-smooth);
+  transition: transform 0.35s var(--ease-smooth);
 }
 
-/* :has(a:focus-visible), not :focus-within — :focus-within also matches a
- * plain mouse click or a bfcache-restored focus on the card's <a>, neither
- * of which trips the a:focus-visible rules below (thumb zoom, title color).
- * Same trigger on both halves so the card can't end up half-lit. */
 .demo-card:hover,
 .demo-card:has(a:focus-visible) {
   box-shadow: var(--shadow-md);
@@ -356,18 +334,4 @@ a:hover {
   background: var(--color-bg-subtle);
   border-radius: var(--radius-sm);
   border: var(--border-hairline) solid var(--color-border);
-}
-
-/* The card entrance is pure CSS (animation-delay isn't touched by the global
- * *,*::before,*::after{transition-duration:.01ms} reduced-motion rule in
- * tokens.css, only *-duration is) — without this override, a squashed
- * animation still waits out its full staggered delay before snapping into
- * view, which reads as broken rather than absent. The logo intro doesn't
- * need an equivalent: it's gated in JS by the same media query and never
- * touches the DOM under reduced motion. */
-@media (prefers-reduced-motion: reduce) {
-  .demo-card {
-    animation: none;
-    opacity: 1;
-  }
 }
