@@ -42,14 +42,14 @@ for (const demo of DEMOS) {
   modelSelect.append(option);
 }
 
-// Default checked: the three accelerated backends. wasm is opt-in, as on the
-// real site — it is a baseline, not a peer.
+// Default checked: the three accelerated backends. wasm and webnn-cpu are
+// opt-in, as on the real site — they are baselines, not peers.
 for (const backend of BACKENDS) {
   const label = document.createElement('label');
   const box = document.createElement('input');
   box.type = 'checkbox';
   box.value = backend;
-  box.checked = backend !== 'wasm';
+  box.checked = backend !== 'wasm' && backend !== 'webnn-cpu';
   box.dataset.role = 'backend';
   label.append(box, document.createTextNode(` ${backend}`));
   backendBoxes.append(label);

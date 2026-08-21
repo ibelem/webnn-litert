@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EfficientViT Segmentation — LiteRT.js on WebNN</title>
 <meta name="description"
-      content="ADE20K scene segmentation running on WebGPU, WebNN GPU and WebNN NPU via LiteRT.js.">
+      content="ADE20K scene segmentation running on WebGPU, WebNN GPU, WebNN NPU and WebNN CPU via LiteRT.js.">
 <link rel="stylesheet" href="/src/ui/tokens.css">
 <link rel="stylesheet" href="/src/ui/components.css">
 </head>
@@ -34,6 +34,7 @@
           <label><input type="checkbox" name="backend" value="webgpu"> WebGPU</label>
           <label><input type="checkbox" name="backend" value="webnn-gpu"> WebNN GPU</label>
           <label><input type="checkbox" name="backend" value="webnn-npu"> WebNN NPU</label>
+          <label><input type="checkbox" name="backend" value="webnn-cpu"> WebNN CPU</label>
           <label><input type="checkbox" name="backend" value="wasm"> Wasm (CPU baseline)</label>
         </div>
         <div class="demo-controls-group" role="group" aria-label="Inference Count">
