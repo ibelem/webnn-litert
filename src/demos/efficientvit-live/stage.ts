@@ -26,16 +26,21 @@ export interface StartCallbacks {
 /**
  * Continuous webcam segmentation, one backend at a time — not built on
  * runner/measure.ts's discrete-N-iteration shape (see worker-entry.ts).
- * Parallels SelfieMulticlassStage's care about releasing the camera
- * promptly, but for a held-open track instead of one snapshot: once the
- * track is transferred to the worker (postMessage's transfer list detaches
- * it from this realm), the worker's own `track.stop()` in its 'stop'/error
- * cleanup is what actually releases the camera — this class has no live
- * reference to stop after that point, only before it.
+ *
+ * MediaStreamTrack itself is NOT transferable (Chrome throws "does not
+ * have a transferable type" on postMessage) — MediaStreamTrackProcessor
+ * must be constructed here, on the main thread where the track lives, and
+ * only its .readable ReadableStream (which IS transferable) is handed to
+ * the worker. That means the track never leaves this class, so — unlike
+ * every other camera-lifecycle assumption in worker-entry.ts's first
+ * draft — THIS class, not the worker, is what actually calls track.stop()
+ * to release the camera. Parallels SelfieMulticlassStage's care about
+ * releasing promptly, just with a held-open track instead of one snapshot.
  */
 export class EfficientVitLiveStage {
   private readonly worker: Worker;
   private modelBytesCache: ArrayBuffer | null = null;
+  private track: MediaStreamTrack | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     const offscreen = canvas.transferControlToOffscreen();
@@ -69,14 +74,21 @@ export class EfficientVitLiveStage {
       for (const t of stream.getTracks()) t.stop();
       throw new Error('getUserMedia returned no video track');
     }
+    this.track = track;
 
     let modelBytes: ArrayBuffer;
     try {
       modelBytes = await this.loadModelBytes(onProgress, callbacks.onLog);
     } catch (e) {
-      track.stop(); // never transferred — this is the only reference to it
+      track.stop();
+      this.track = null;
       throw e;
     }
+
+    // Constructed here (not in the worker) because MediaStreamTrackProcessor
+    // needs the actual track, which never leaves this thread — only its
+    // .readable stream (transferable) is handed over below.
+    const processor = new MediaStreamTrackProcessor({track});
 
     return new Promise<void>((resolve, reject) => {
       const onMessage = (event: MessageEvent<LiveWorkerToMainMessage>): void => {
@@ -105,19 +117,21 @@ export class EfficientVitLiveStage {
       this.worker.addEventListener('message', onMessage);
 
       const startMsg: MainToLiveWorkerMessage = {
-        type: 'start', backend, litertVersion, modelBytes: modelBytes.slice(0), track,
+        type: 'start', backend, litertVersion, modelBytes: modelBytes.slice(0),
+        readable: processor.readable,
       };
-      // track transfers here — the worker owns the live reference from this
-      // point on; this class has nothing left to release.
-      this.worker.postMessage(startMsg, [startMsg.modelBytes, track]);
+      this.worker.postMessage(startMsg, [startMsg.modelBytes, startMsg.readable]);
     });
   }
 
-  /** Stops the live loop and releases the camera (in the worker — see class
-   *  doc comment). Resolves once the worker confirms via 'stopped'; the
-   *  caller should wait for this before starting a different backend, so
-   *  two loops never overlap. */
+  /** Stops the live loop and releases the camera. The track is stopped
+   *  right here on the main thread (see class doc comment) — resolving
+   *  waits only on the worker's 'stopped' to confirm ITS resources (reader,
+   *  compiled model) are released too, so the caller can safely start a
+   *  different backend once this resolves without two loops overlapping. */
   stop(): Promise<void> {
+    this.track?.stop();
+    this.track = null;
     return new Promise<void>((resolve) => {
       const onMessage = (event: MessageEvent<LiveWorkerToMainMessage>): void => {
         if (event.data.type === 'stopped') {
@@ -132,9 +146,9 @@ export class EfficientVitLiveStage {
   }
 
   dispose(): void {
+    this.track?.stop();
+    this.track = null;
     // Best effort — a page unload doesn't get to wait for 'stopped'.
-    // Terminating the worker also tears down whatever camera resource it
-    // held as a safety net if the message never gets processed in time.
     const stopMsg: MainToLiveWorkerMessage = {type: 'stop'};
     this.worker.postMessage(stopMsg);
     this.worker.terminate();

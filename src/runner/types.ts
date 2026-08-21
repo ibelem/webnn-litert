@@ -1,5 +1,6 @@
-/** The four backends the site exposes. `wasm` is an opt-in CPU baseline. */
-export const BACKENDS = ['webnn-npu', 'webnn-gpu', 'webgpu', 'wasm'] as const;
+/** The five backends the site exposes. `wasm` is an opt-in CPU baseline;
+ *  `webnn-cpu` is WebNN's own CPU path, distinct from wasm's plain-WASM one. */
+export const BACKENDS = ['webnn-npu', 'webnn-gpu', 'webgpu', 'wasm', 'webnn-cpu'] as const;
 export type Backend = (typeof BACKENDS)[number];
 
 /**

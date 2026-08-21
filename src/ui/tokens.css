@@ -112,12 +112,14 @@
   --backend-webgpu: var(--wn-blue);
   --backend-webnn-gpu: var(--wn-sky);
   --backend-webnn-npu: var(--wn-purple);
+  --backend-webnn-cpu: var(--wn-indigo);
 
   /* Per-backend tints, the --*-005 pattern from webnn-docs. */
   --backend-wasm-tint: rgb(107 114 128 / 6%);
   --backend-webgpu-tint: rgb(67 97 238 / 6%);
   --backend-webnn-gpu-tint: rgb(76 201 240 / 8%);
   --backend-webnn-npu-tint: rgb(114 9 183 / 6%);
+  --backend-webnn-cpu-tint: rgb(58 12 163 / 6%);
 
   /* Delegation status — SEPARATE channel from backend hue, so a reader can
    * tell "this is the NPU card" apart from "this ran where it claimed".
@@ -205,11 +207,13 @@
 
     --backend-webnn-gpu: var(--wn-cyan);
     --backend-webnn-npu: #a855f7;   /* --wn-purple is too dark on near-black */
+    --backend-webnn-cpu: #6366f1;   /* --wn-indigo is too dark on near-black */
 
     --backend-wasm-tint: rgb(156 163 175 / 8%);
     --backend-webgpu-tint: rgb(67 97 238 / 14%);
     --backend-webnn-gpu-tint: rgb(0 191 255 / 10%);
     --backend-webnn-npu-tint: rgb(168 85 247 / 12%);
+    --backend-webnn-cpu-tint: rgb(99 102 241 / 12%);
 
     --delegation-partial: #f97e3c;
     --delegation-partial-tint: rgb(249 126 60 / 12%);
@@ -245,11 +249,13 @@
 
   --backend-webnn-gpu: var(--wn-cyan);
   --backend-webnn-npu: #a855f7;
+  --backend-webnn-cpu: #6366f1;
 
   --backend-wasm-tint: rgb(156 163 175 / 8%);
   --backend-webgpu-tint: rgb(67 97 238 / 14%);
   --backend-webnn-gpu-tint: rgb(0 191 255 / 10%);
   --backend-webnn-npu-tint: rgb(168 85 247 / 12%);
+  --backend-webnn-cpu-tint: rgb(99 102 241 / 12%);
 
   --delegation-partial: #f97e3c;
   --delegation-partial-tint: rgb(249 126 60 / 12%);

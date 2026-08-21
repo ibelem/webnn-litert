@@ -3,10 +3,12 @@
 /**
  * Bespoke worker for the live demo — does NOT use runner/litert.worker.ts's
  * runDemoWorker, which is shaped around measureBackend's discrete N-iteration
- * run. This compiles once, then loops indefinitely against a live camera
- * track (MediaStreamTrackProcessor, constructed IN this worker per
- * CLAUDE.md's "prefer MediaStreamTrackProcessor inside the worker" note —
- * the frame path never touches the main thread) until told to stop.
+ * run. This compiles once, then loops indefinitely against a transferred
+ * MediaStreamTrackProcessor .readable stream until told to stop — the frame
+ * path never touches the main thread again once started (per CLAUDE.md's
+ * "prefer MediaStreamTrackProcessor... inside the worker" note), even
+ * though the processor itself has to be constructed on the main thread
+ * (see stage.ts: MediaStreamTrack isn't transferable, only the stream is).
  *
  * MUST stay a classic worker (imported via `?worker`, never
  * `{type: 'module'}`) — LiteRT's Emscripten loader calls importScripts(),
@@ -58,7 +60,6 @@ async function handleStart(msg: Extract<MainToLiveWorkerMessage, {type: 'start'}
     return;
   }
   stopRequested = false;
-  let track: MediaStreamTrack | null = msg.track;
 
   try {
     const mod = await ensureLiteRt(
@@ -86,8 +87,7 @@ async function handleStart(msg: Extract<MainToLiveWorkerMessage, {type: 'start'}
       const inputDetails = compiled.getInputDetails();
       const outputDetails = compiled.getOutputDetails();
 
-      const processor = new MediaStreamTrackProcessor({track});
-      const reader = processor.readable.getReader();
+      const reader = msg.readable.getReader();
       let lastStatsAt = 0;
 
       try {
@@ -146,8 +146,8 @@ async function handleStart(msg: Extract<MainToLiveWorkerMessage, {type: 'start'}
   } catch (e) {
     post({type: 'error', message: e instanceof Error ? `${e.name}: ${e.message}` : String(e)});
   } finally {
-    track?.stop();
-    track = null;
+    // Camera release is stage.ts's job (see file doc comment) — this worker
+    // never had the track, only the transferred readable stream.
     activeCtx.clearRect(0, 0, activeCtx.canvas.width, activeCtx.canvas.height);
     post({type: 'stopped'});
   }

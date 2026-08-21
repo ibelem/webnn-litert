@@ -21,6 +21,8 @@ function compileOptionsFor(backend: Backend): CompileOptions {
       return {accelerator: 'webnn', webNNOptions: {devicePreference: 'gpu'}};
     case 'webnn-npu':
       return {accelerator: 'webnn', webNNOptions: {devicePreference: 'npu'}};
+    case 'webnn-cpu':
+      return {accelerator: 'webnn', webNNOptions: {devicePreference: 'cpu'}};
   }
 }
 

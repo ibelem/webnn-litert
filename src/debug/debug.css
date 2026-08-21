@@ -156,6 +156,7 @@ tr[data-backend='wasm'] { background: var(--backend-wasm-tint); }
 tr[data-backend='webgpu'] { background: var(--backend-webgpu-tint); }
 tr[data-backend='webnn-gpu'] { background: var(--backend-webnn-gpu-tint); }
 tr[data-backend='webnn-npu'] { background: var(--backend-webnn-npu-tint); }
+tr[data-backend='webnn-cpu'] { background: var(--backend-webnn-cpu-tint); }
 
 .chip {
   font-size: var(--text-2xs);
@@ -170,6 +171,7 @@ tr[data-backend='wasm'] .chip { color: var(--backend-wasm); }
 tr[data-backend='webgpu'] .chip { color: var(--backend-webgpu); }
 tr[data-backend='webnn-gpu'] .chip { color: var(--backend-webnn-gpu); }
 tr[data-backend='webnn-npu'] .chip { color: var(--backend-webnn-npu); }
+tr[data-backend='webnn-cpu'] .chip { color: var(--backend-webnn-cpu); }
 
 /* Delegation = a reserved channel. 'full' is deliberately unmarked, because
    partial is the expected outcome and marking success would make the site look
