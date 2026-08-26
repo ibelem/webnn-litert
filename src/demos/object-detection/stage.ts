@@ -17,6 +17,7 @@ export interface RunParams {
   iterations: number;
   warmupRuns: number;
   onProgress?: (message: string) => void;
+  onLog?: (message: string) => void;
 }
 
 /**
@@ -77,6 +78,10 @@ export class Yolo26Stage {
       const onMessage = (event: MessageEvent<WorkerToMainMessage>): void => {
         const msg = event.data;
         if (msg.requestId !== requestId) return;
+        if (msg.type === 'log') {
+          params.onLog?.(msg.message);
+          return;
+        }
         this.worker.removeEventListener('message', onMessage);
         if (!isCurrent()) {
           reject(abortedError());
