@@ -205,6 +205,19 @@
   margin-top: var(--space-4);
 }
 
+/* Live mode: video-file / camera source panel, sibling of .sample-image */
+.live-mode-panel {
+  margin-top: var(--space-4);
+}
+
+.video-source-controls {
+  margin-bottom: var(--space-4);
+}
+
+.live-mode-panel .run {
+  width: 100%;
+}
+
 .demo-sidebar .sample-image img {
   max-width: 100%;
   height: auto;
@@ -322,7 +335,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-1) 0;
+  padding: 0;
 }
 
 /* Inference count control */

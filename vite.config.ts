@@ -46,6 +46,7 @@ export default defineConfig({
         'efficientvit-seg': 'efficientvit-seg.html',
         'real-esrgan': 'real-esrgan.html',
         'efficientvit-live': 'efficientvit-live.html',
+        'object-detection': 'object-detection.html',
       },
     },
     target: 'es2022',

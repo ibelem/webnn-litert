@@ -115,6 +115,18 @@ export const DEMOS: readonly DemoEntry[] = [
     implemented: true,
     thumbnail: '/images/home/efficientvit-live.jpg',
   },
+  {
+    slug: 'object-detection',
+    title: 'YOLOv2.6 Object Detection',
+    blurb: 'Real-time object detection with bounding boxes',
+    model: {
+      url: 'https://huggingface.co/webnn/yolo26n/blob/main/tflite/model.tflite',
+      labels: 'https://huggingface.co/webnn/yolo26n/raw/main/tflite/coco_labels.txt',
+    },
+    backends: BACKENDS,
+    implemented: true,
+    thumbnail: '/images/home/object-detection.png',
+  },
 ];
 
 export function findDemo(slug: string): DemoEntry | undefined {
