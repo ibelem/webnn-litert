@@ -155,7 +155,7 @@ export function createCompareController(opts: CompareControllerOptions) {
     const receiptEl = document.createElement('div');
     receiptEl.className = 'receipt-badge';
 
-    header.append(label, receiptEl);
+    header.append(label);
 
     const stageWrap = document.createElement('div');
     stageWrap.className = 'compare-card__stage';
@@ -172,7 +172,7 @@ export function createCompareController(opts: CompareControllerOptions) {
     const metricInferenceEl = document.createElement('div');
     metrics.append(metricLoadEl, metricInferenceEl);
 
-    wrap.append(header, stageWrap, metrics);
+    wrap.append(header, stageWrap, receiptEl, metrics);
     gridEl.append(wrap);
 
     return {stage, receiptEl, metricLoadEl, metricInferenceEl};

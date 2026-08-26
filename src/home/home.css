@@ -165,7 +165,8 @@ a:hover {
   background: var(--color-surface);
   position: relative;
   overflow: hidden;
-  transition: box-shadow 0.35s var(--ease-smooth), border-color 0.35s var(--ease-smooth);
+  transition: transform 0.35s var(--ease-smooth), box-shadow 0.35s var(--ease-smooth),
+      border-color 0.35s var(--ease-smooth);
 }
 
 .demo-card__thumb {
@@ -174,28 +175,20 @@ a:hover {
   aspect-ratio: 16 / 10;
   object-fit: cover;
   backface-visibility: hidden;
-  will-change: transform, filter;
-  /* Rest state: fully grayscale, not partial — a partial desaturation
-   * (e.g. grayscale(60%)) leaves muddy, undersaturated color mixed with
-   * gray, which is what reads as "dirty" rather than deliberate. contrast()
-   * counters the flatness plain grayscale + dimming otherwise introduces.
-   * Same three filter functions (grayscale/contrast/brightness), same
-   * order, as the hover state below — filter lists only interpolate
-   * smoothly when both sides match shape. This also governs hover-OUT —
-   * faster than the wake-up below, matching "exit faster than entrance." */
-  filter: grayscale(100%) contrast(1.05) brightness(0.92);
+  will-change: transform;
+  /* Full color always — these thumbnails are the demo's actual output
+   * (segmentation masks, detection boxes, a depth map), not decorative
+   * stock photos, so dimming or desaturating them by default hides the
+   * exact thing meant to sell the demo in the first two seconds. The
+   * card-level lift below (transform + shadow + accent border) carries
+   * the hover interest instead of a filter change on the image itself. */
   transform: scale(1);
-  transition: filter 0.35s var(--ease-smooth), transform 0.35s var(--ease-smooth);
+  transition: transform 0.45s var(--ease-smooth);
 }
 
 .demo-card a:hover .demo-card__thumb,
 .demo-card a:focus-visible .demo-card__thumb {
-  /* Hover-IN: the photo wakes to full color. A deliberately modest scale
-   * (1.05, not the 1.2 from an earlier pass) — the color reveal carries the
-   * "cool" factor now, so scale's easing shape barely registers at this size. */
-  filter: grayscale(0%) contrast(1) brightness(1);
-  transform: scale(1.05);
-  transition: filter 0.55s var(--ease-smooth), transform 0.55s var(--ease-smooth);
+  transform: scale(1.04);
 }
 
 .demo-card__body {
@@ -213,8 +206,9 @@ a:hover {
   background: var(--photo-scrim);
 }
 
-/* Accent bar wipes in from the left on hover — the same ramp used
- * elsewhere on the page, so the card reads as "activating." */
+/* Accent bar wipes in from the left on hover — the same navy→pink ramp as
+ * the hero heading, so the card reads as "activating" with the site's own
+ * brand gradient rather than a flat tint. */
 .demo-card::before {
   content: '';
   position: absolute;
@@ -222,6 +216,7 @@ a:hover {
   left: 0;
   right: 0;
   height: var(--space-1);
+  background: linear-gradient(90deg, var(--color-accent) 0%, var(--wn-pink) 100%);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.35s var(--ease-smooth);
@@ -229,7 +224,9 @@ a:hover {
 
 .demo-card:hover,
 .demo-card:has(a:focus-visible) {
-  box-shadow: var(--shadow-md);
+  /* shadow + accent border carry the "activating" feeling now,
+   * instead of a filter change on the thumbnail. */
+  box-shadow: var(--shadow-lg);
 }
 
 .demo-card:hover::before,

@@ -94,7 +94,7 @@ export function renderYolo26(
  * The palette has 20 colors, so we cycle through them.
  */
 function getColor(classId: number): string {
-  return ULTRALYTICS_PALETTE[classId % ULTRALYTICS_PALETTE.length] ?? '#FF3838';
+  return ULTRALYTICS_PALETTE[classId % ULTRALYTICS_PALETTE.length] ?? '#EF4444';
 }
 
 /**
@@ -119,11 +119,12 @@ function getTextColor(hex: string): string {
 }
 
 /**
- * Ultralytics color palette for YOLO visualizations.
- * 20 colors that cycle through for different classes.
+ * Class-color palette for detection box borders. 20 colors that cycle
+ * through for different classes.
  */
 const ULTRALYTICS_PALETTE = [
-  '#FF3838', '#FF9D97', '#FF701F', '#FFB21D', '#CFD231', '#48F90A', '#92CC17',
-  '#3DDB86', '#1A9334', '#00D4BB', '#2C99A8', '#00C2FF', '#344593', '#6473FF',
-  '#0018EC', '#8438FF', '#520085', '#CB38FF', '#FF95C8', '#FF37C7',
+  '#EF4444', '#4299E1', '#059669', '#FBBF24', '#4B52B1',
+  '#7B3AC2', '#ED507A', '#1DD1A1', '#F3873A', '#4B5563',
+  '#DC2626', '#1852B4', '#18A35D', '#F59E0B', '#4059BE',
+  '#6027A5', '#D63D60', '#00AC9B', '#E64A19', '#272A34',
 ];
