@@ -1,5 +1,4 @@
 import {findDemo} from '../../registry';
-import {fetchModelWithMirrorFallback} from '../../runner/hf-mirror';
 import {loadModelBytesCached} from '../../runner/opfs-cache';
 import {formatProgress} from '../../runner/progress-fetch';
 import type {Backend, Delegation} from '../../runner/types';
@@ -9,8 +8,6 @@ import Yolo26LiveWorker from './worker-entry-live.ts?worker';
 const found = findDemo('object-detection');
 if (!found) throw new Error('registry missing object-detection entry');
 const DEMO = found;
-if (!DEMO.model.labels) throw new Error('registry object-detection entry has no labels URL');
-const LABELS_URL = DEMO.model.labels;
 
 export interface LiveReceipt {
   delegation: Delegation;
@@ -39,7 +36,6 @@ export interface StartCallbacks {
 export class ObjectDetectionLiveStage {
   private readonly worker: Worker;
   private modelBytesCache: ArrayBuffer | null = null;
-  private labelsCache: readonly string[] | null = null;
   private track: MediaStreamTrack | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -58,14 +54,6 @@ export class ObjectDetectionLiveStage {
     return this.modelBytesCache;
   }
 
-  private async loadLabels(): Promise<readonly string[]> {
-    if (this.labelsCache) return this.labelsCache;
-    const res = await fetchModelWithMirrorFallback(LABELS_URL);
-    if (!res.ok) throw new Error(`labels fetch ${res.status} — ${LABELS_URL}`);
-    this.labelsCache = (await res.text()).split('\n').map((s) => s.trim()).filter(Boolean);
-    return this.labelsCache;
-  }
-
   /**
    * Starts continuous detection against the given track. Caller owns
    * requesting the track (getUserMedia, or an uploaded <video>'s
@@ -78,12 +66,8 @@ export class ObjectDetectionLiveStage {
     this.track = track;
 
     let modelBytes: ArrayBuffer;
-    let labels: readonly string[];
     try {
-      [modelBytes, labels] = await Promise.all([
-        this.loadModelBytes(onProgress, callbacks.onLog),
-        this.loadLabels(),
-      ]);
+      modelBytes = await this.loadModelBytes(onProgress, callbacks.onLog);
     } catch (e) {
       track.stop();
       this.track = null;
@@ -120,7 +104,7 @@ export class ObjectDetectionLiveStage {
       this.worker.addEventListener('message', onMessage);
 
       const startMsg: MainToLiveWorkerMessage = {
-        type: 'start', backend, litertVersion, modelBytes: modelBytes.slice(0), labels,
+        type: 'start', backend, litertVersion, modelBytes: modelBytes.slice(0),
         readable: processor.readable,
       };
       this.worker.postMessage(startMsg, [startMsg.modelBytes, startMsg.readable]);

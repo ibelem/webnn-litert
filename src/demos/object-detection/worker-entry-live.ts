@@ -115,7 +115,7 @@ async function handleStart(msg: Extract<MainToLiveWorkerMessage, {type: 'start'}
               if (d !== undefined) named[name] = d;
             });
 
-            renderYolo26(activeCtx, outputDetails, named, {labels: msg.labels, frame: image});
+            renderYolo26(activeCtx, outputDetails, named, {frame: image});
             for (const t of outTensors) t.delete();
 
             const now = performance.now();

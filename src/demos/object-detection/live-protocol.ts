@@ -18,9 +18,6 @@ export interface LiveStartMessage {
   backend: Backend;
   litertVersion: string;
   modelBytes: ArrayBuffer;
-  /** Fetched once by the stage — the worker has no way to fetch this
-   *  itself, same reasoning as RunMessage.extra in worker-protocol.ts. */
-  labels: readonly string[];
   /**
    * Transferred, not copied. MediaStreamTrack itself is NOT transferable
    * (Chrome throws "does not have a transferable type") — the stage

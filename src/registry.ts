@@ -120,8 +120,7 @@ export const DEMOS: readonly DemoEntry[] = [
     title: 'YOLOv2.6 Object Detection',
     blurb: 'Real-time object detection with bounding boxes',
     model: {
-      url: 'https://huggingface.co/webnn/yolo26n/blob/main/tflite/model.tflite',
-      labels: 'https://huggingface.co/webnn/yolo26n/raw/main/tflite/coco_labels.txt',
+      url: 'https://huggingface.co/webnn/yolo26n/resolve/main/tflite/model.tflite',
     },
     backends: BACKENDS,
     implemented: true,

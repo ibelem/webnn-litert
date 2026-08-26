@@ -5,14 +5,11 @@ import {MeasurementScheduler} from '../../runner/scheduler';
 import type {Backend, RunRecord} from '../../runner/types';
 import type {MainToWorkerMessage, WorkerToMainMessage} from '../../runner/worker-protocol';
 import {getCurrentImageSrc} from '../../ui/image-upload';
-import type {Yolo26Labels} from './render';
 import Yolo26Worker from './worker-entry.ts?worker';
 
 const found = findDemo('object-detection');
 if (!found) throw new Error('registry missing object-detection entry');
 const DEMO = found;
-if (!DEMO.model.labels) throw new Error('registry object-detection entry has no labels URL');
-const LABELS_URL = DEMO.model.labels;
 
 export interface RunParams {
   backend: Backend;
@@ -35,7 +32,6 @@ export class Yolo26Stage {
   private readonly worker: Worker;
   private readonly scheduler = new MeasurementScheduler();
   private modelBytesCache: ArrayBuffer | null = null;
-  private labelsCache: readonly string[] | null = null;
   private nextRequestId = 0;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -55,14 +51,6 @@ export class Yolo26Stage {
     return this.modelBytesCache;
   }
 
-  private async loadLabels(): Promise<readonly string[]> {
-    if (this.labelsCache) return this.labelsCache;
-    const res = await fetchModelWithMirrorFallback(LABELS_URL);
-    if (!res.ok) throw new Error(`labels fetch ${res.status} — ${LABELS_URL}`);
-    this.labelsCache = (await res.text()).split('\n').map((s) => s.trim());
-    return this.labelsCache;
-  }
-
   private async loadSourceImage(): Promise<ImageBitmap> {
     const res = await fetch(getCurrentImageSrc());
     if (!res.ok) throw new Error(`sample image fetch ${res.status}`);
@@ -74,12 +62,8 @@ export class Yolo26Stage {
     const requestId = String(this.nextRequestId++);
     const abortedError = () => new DOMException('superseded by a newer run', 'AbortError');
 
-    const [cachedModel, labels] = await Promise.all([
-      this.loadModelBytes(params.onProgress),
-      this.loadLabels(),
-    ]);
+    const modelBytes = (await this.loadModelBytes(params.onProgress)).slice(0);
     if (signal.aborted) throw abortedError();
-    const modelBytes = cachedModel.slice(0);
 
     params.onProgress?.('loading image…');
     const image = await this.loadSourceImage();
@@ -104,7 +88,6 @@ export class Yolo26Stage {
       };
       this.worker.addEventListener('message', onMessage);
 
-      const extra: Yolo26Labels = {labels};
       const runMsg: MainToWorkerMessage = {
         type: 'run',
         requestId,
@@ -114,7 +97,6 @@ export class Yolo26Stage {
         iterations: params.iterations,
         warmupRuns: params.warmupRuns,
         image,
-        extra,
       };
       this.worker.postMessage(runMsg, [modelBytes, image]);
     });

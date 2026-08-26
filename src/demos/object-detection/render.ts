@@ -5,21 +5,18 @@ import {getLastFrame} from './frame-cache';
 import {postprocessYolo26} from './postprocess';
 
 /**
- * `extra` shape for this demo: the label file's lines, index-aligned to the
- * model's 80 output classes. Threaded through RunMessage.extra since the
- * worker cannot fetch this itself — see worker-protocol.ts.
+ * `extra` shape for this demo: only set by the live worker (camera/video),
+ * which passes the frame it just ran inference on directly, since that
+ * worker's loop doesn't go through the shared preprocess/render wrapper
+ * that frame-cache.ts otherwise relies on (see worker-entry-live.ts). The
+ * discrete compare-grid path never sets this — it relies on frame-cache.
  */
-export interface Yolo26Labels {
-  labels: readonly string[];
-  /** Only set by the live worker (camera/video) — it passes the frame it
-   *  just ran inference on directly, since that worker's loop doesn't go
-   *  through the shared preprocess/render wrapper that frame-cache.ts
-   *  otherwise relies on (see worker-entry-live.ts). */
-  frame?: ImageBitmap;
+export interface Yolo26LiveExtra {
+  frame: ImageBitmap;
 }
 
-function isYolo26Labels(v: unknown): v is Yolo26Labels {
-  return typeof v === 'object' && v !== null && Array.isArray((v as Yolo26Labels).labels);
+function isYolo26LiveExtra(v: unknown): v is Yolo26LiveExtra {
+  return typeof v === 'object' && v !== null && 'frame' in v;
 }
 
 /**
@@ -36,14 +33,13 @@ export function renderYolo26(
     data: OutputData,
     extra?: unknown,
 ): void {
-  const parsed = isYolo26Labels(extra) ? extra : undefined;
-  const detections = postprocessYolo26(outputDetails, data, parsed?.labels);
+  const detections = postprocessYolo26(outputDetails, data);
 
   const {width, height} = ctx.canvas;
 
   // Draw the source frame as the boxes' backdrop; fall back to a clear
   // canvas if it's somehow missing (e.g. preprocess never ran).
-  const frame = parsed?.frame ?? getLastFrame();
+  const frame = isYolo26LiveExtra(extra) ? extra.frame : getLastFrame();
   if (frame) {
     ctx.drawImage(frame, 0, 0, width, height);
   } else {

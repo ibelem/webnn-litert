@@ -45,7 +45,6 @@ export interface Detection {
 export function postprocessYolo26(
     outputDetails: readonly TensorDetails[],
     data: OutputData,
-    labels?: readonly string[],
     confidenceThreshold: number = 0.25,
     iouThreshold: number = 0.45,
 ): Detection[] {
@@ -147,7 +146,7 @@ export function postprocessYolo26(
       box: candidate.box,
       score: candidate.score,
       classId: candidate.classId,
-      className: (labels ?? COCO_LABELS)[candidate.classId] || `class_${candidate.classId}`,
+      className: COCO_LABELS[candidate.classId] || `class_${candidate.classId}`,
     });
 
     // Remove overlapping boxes of the same class
