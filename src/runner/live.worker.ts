@@ -23,6 +23,7 @@ import type {LiteRt} from './loader';
 import {ensureLiteRt} from './loader';
 import {compileForBackend, loadModeFor, type OutputData} from './measure';
 import {computeMetrics} from './metrics';
+import {fitCanvasSize} from '../ui/canvas-size';
 import type {LiveWorkerToMainMessage, MainToLiveWorkerMessage} from './live-protocol';
 import type {TensorDetails} from '@litertjs/core';
 
@@ -40,6 +41,10 @@ const LOG_THROTTLE_MS = 2000;
 // hours. The reported frame count still counts every frame.
 // ponytail: fixed window, revisit only if a session-wide p90 is ever needed.
 const MAX_SAMPLES = 1000;
+// Longest side of the stage canvas. The live card is at most ~640px wide in
+// the layout, so a larger backing store would cost per-frame draw time for
+// pixels nobody sees.
+const MAX_STAGE_DIMENSION = 640;
 
 export interface LiveWorkerHandler {
   /**
@@ -155,6 +160,7 @@ export function runLiveWorker(handler: LiveWorkerHandler): void {
         let firstInferenceMs = 0;
         let emaFrameMs = 0;
         let lastFrameAt = 0;
+        let sizedToSource = false;
         const samples: number[] = [];
 
         try {
@@ -167,6 +173,28 @@ export function runLiveWorker(handler: LiveWorkerHandler): void {
               image = await createImageBitmap(frame);
             } finally {
               frame.close();
+            }
+
+            // Match the canvas to the SOURCE's aspect ratio, once, on the
+            // first frame. The page ships a 640x480 canvas because that is
+            // what acquireCameraTrack asks the webcam for — but an uploaded
+            // video is whatever the file is, and a 1920x1080 source rendered
+            // into a 4:3 box came out vertically stretched.
+            //
+            // This has to happen HERE, in the worker: the canvas was handed
+            // over with transferControlToOffscreen() in LiveStage's
+            // constructor, and after that the main thread can no longer
+            // resize it. The worker owns it and can. The element has no CSS
+            // width, so its displayed size follows this backing store and
+            // the card reflows to match.
+            if (!sizedToSource) {
+              sizedToSource = true;
+              const fitted = fitCanvasSize(image.width, image.height, MAX_STAGE_DIMENSION);
+              if (activeCtx.canvas.width !== fitted.width ||
+                  activeCtx.canvas.height !== fitted.height) {
+                activeCtx.canvas.width = fitted.width;
+                activeCtx.canvas.height = fitted.height;
+              }
             }
 
             // One object for both ends: a demo that draws the source frame as
