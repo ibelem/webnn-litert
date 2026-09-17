@@ -244,6 +244,15 @@
  * that row sizing — the row becomes the card's height alone — and
  * `min-height: 100%` then resolves against the now-definite grid area and
  * fills it. Overflow keeps scrolling, so nothing is lost. */
+/* The grid's own bottom margin separates it from the log STACKED BELOW it in
+   image mode. Here the log is beside it, so that margin has no job — and it
+   is part of this item's margin box, so it counted toward the row's height:
+   the row came out one --space-4 taller than the card, and the log, which
+   fills the row, was visibly taller than the card next to it. */
+.demo-content--live .compare-grid {
+  margin-bottom: 0;
+}
+
 .demo-content--live .log-status {
   margin-top: 0;
   height: 0;
