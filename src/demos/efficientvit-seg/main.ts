@@ -17,6 +17,7 @@ import {DEFAULT_LITERT_VERSION} from '../../runner/loader';
 import {createCompareController} from '../../runner/compare-controller';
 import {acquireCameraTrack, acquireVideoFileTrack} from '../../runner/live-stage';
 import {isBackend, type Backend} from '../../runner/types';
+import {carryOverBackend} from '../../ui/backend-carryover';
 import {renderMetricRow} from '../../ui/metric-row';
 import {renderReceiptBadge} from '../../ui/receipt-badge';
 import {createLogger} from '../../ui/log-status';
@@ -51,11 +52,14 @@ function currentInputMode(): InputMode {
  *  the first live line used to erase the whole image-mode transcript. */
 const liveLogger = createLogger(el('log-status'));
 
+const compareBackendBoxes =
+    [...document.querySelectorAll<HTMLInputElement>('input[name="backend"]')];
+
 // ---- Image mode: N-backend compare grid ----
 
 const controller = createCompareController({
   gridEl: el('compare-grid'),
-  backendBoxes: [...document.querySelectorAll<HTMLInputElement>('input[name="backend"]')],
+  backendBoxes: compareBackendBoxes,
   litertVersion,
   iterations: getInitialInferenceCount(),
   logger: liveLogger,
@@ -130,6 +134,11 @@ function applyInputMode(mode: InputMode): void {
   if (live) void stopLive();
 
   const isImage = mode === 'image';
+  // Live mode's radio group is a different control from the compare grid's
+  // checkboxes, and only one is visible at a time — without this, a backend
+  // ticked for compare looked like it had been silently cleared on the way
+  // into Video/Camera. See ui/backend-carryover.ts.
+  if (!isImage) carryOverBackend(compareBackendBoxes, liveBackendRadios);
   imageControls.hidden = !isImage;
   imageModePanel.hidden = !isImage;
   compareGrid.hidden = !isImage;

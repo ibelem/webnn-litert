@@ -161,6 +161,12 @@
   --space-7: 3rem;
   --space-8: 4rem;
 
+  /* Sidebar control height. Pins .run and .image-upload__button to the same
+     box so they line up when stacked — see components.css. Comfortably clears
+     their content box (13px text x 1.55 leading + 2x --space-2 + hairline
+     borders = ~38px), so the text never clips. */
+  --control-height: 2.5rem;
+
   /* Radius — 5px echoes webnn.io; pill for CTAs */
   --radius-sm: 0.25rem;
   --radius: 0.3125rem;

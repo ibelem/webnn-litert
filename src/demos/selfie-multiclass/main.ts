@@ -14,6 +14,7 @@
  */
 import {DEFAULT_LITERT_VERSION} from '../../runner/loader';
 import {BACKENDS, isBackend, type Backend} from '../../runner/types';
+import {carryOverBackend} from '../../ui/backend-carryover';
 import {renderMetricRow} from '../../ui/metric-row';
 import {renderReceiptBadge} from '../../ui/receipt-badge';
 import {createLogger} from '../../ui/log-status';
@@ -382,6 +383,11 @@ function applyInputMode(mode: InputMode): void {
   if (live) void stopLive();
 
   const isImage = mode === 'image';
+  // Live mode's radio group is a different control from the compare grid's
+  // checkboxes, and only one is visible at a time — without this, a backend
+  // ticked for compare looked like it had been silently cleared on the way
+  // into Video/Camera. See ui/backend-carryover.ts.
+  if (!isImage) carryOverBackend(backendBoxes, liveBackendRadios);
   imageControls.hidden = !isImage;
   imageModePanel.hidden = !isImage;
   gridEl.hidden = !isImage;

@@ -230,10 +230,6 @@
   margin-bottom: var(--space-4);
 }
 
-.live-mode-panel .run {
-  width: 100%;
-}
-
 .demo-sidebar .sample-image img {
   max-width: 100%;
   height: auto;
@@ -267,51 +263,50 @@
   display: none;
 }
 
-.image-upload__button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: var(--space-1);
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-surface);
-  border: var(--border-hairline) solid var(--color-border);
-  border-radius: var(--radius);
-  font-size: var(--text-sm);
-  color: var(--color-fg);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.image-upload__button:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-}
-
-/* Primary CTA in the sidebar (selfie-multiclass's capture button) — same
- * bordered-box language as .image-upload__button so the two sidebar
- * buttons read as one family instead of one styled and one bare. */
+/* ONE control surface, two elements: a real <button> (.run) and a <label>
+ * dressed as a button (.image-upload__button — a file input's own control
+ * cannot be styled, so the label stands in for it). They stack directly on
+ * top of each other in the live-mode sidebar, so any difference between
+ * them is immediately visible.
+ *
+ * They used to be two near-identical copies and they drifted: `.run` set
+ * `font: inherit` — which resets the UA button font AND its line-height —
+ * while the label simply inherited the document's. The two resolved
+ * different line boxes and the label rendered shorter than the button
+ * directly beneath it. Declared once now, with line-height and min-height
+ * pinned so neither can drift again, and so a long label wrapping to two
+ * lines is the only thing that can change either one's height. */
+.image-upload__button,
 .run {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
+  min-height: var(--control-height);
   gap: var(--space-1);
   padding: var(--space-2) var(--space-3);
-  margin-top: var(--space-3);
   background: var(--color-surface);
   border: var(--border-hairline) solid var(--color-border);
   border-radius: var(--radius);
   font: inherit;
   font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  text-align: center;
   color: var(--color-fg);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
+.image-upload__button:hover,
 .run:hover {
   border-color: var(--color-accent);
   color: var(--color-accent);
+}
+
+/* Gap between stacked sidebar controls — deliberately NOT part of the shared
+ * surface above, which describes the box itself and not its placement. */
+.run {
+  margin-top: var(--space-3);
 }
 
 .run:disabled {
