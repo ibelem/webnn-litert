@@ -1,6 +1,6 @@
 import {renderMetricRow} from '../ui/metric-row';
 import {renderReceiptBadge} from '../ui/receipt-badge';
-import {createLogger} from '../ui/log-status';
+import {createLogger, type Logger} from '../ui/log-status';
 import {fitCanvasSize} from '../ui/canvas-size';
 import {BACKENDS, isBackend, type Backend} from './types';
 import type {RunRecord} from './types';
@@ -53,6 +53,14 @@ export interface CompareControllerOptions {
    * canvas sat empty. Those two modes must never run at the same time.
    */
   enabled?: () => boolean;
+  /**
+   * Reuse an existing logger rather than creating one. Pages that ALSO have a
+   * live mode MUST pass one: createLogger keeps its own line buffer and
+   * renders by replacing the element's whole textContent, so two loggers on
+   * one #log-status silently wipe each other's history — the first live line
+   * erased the entire image-mode transcript.
+   */
+  logger?: Logger;
 }
 
 /**
@@ -124,7 +132,7 @@ export function createCompareController(opts: CompareControllerOptions) {
   /** Bumped whenever the input image changes, so it participates in runKey()
    *  the same way version and iteration count do. */
   let sourceGeneration = 0;
-  const logger = createLogger(logStatusEl ?? null);
+  const logger = opts.logger ?? createLogger(logStatusEl ?? null);
 
   /**
    * Everything that invalidates an existing measurement, as one string. A

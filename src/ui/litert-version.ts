@@ -93,8 +93,13 @@ export async function setupLiteRtVersionDropdown(): Promise<void> {
     
     if (urlVersion && isValidVersion(urlVersion) && versions.includes(urlVersion)) {
       select.value = urlVersion;
-    } else {
+    } else if (versions.includes(DEFAULT_LITERT_VERSION)) {
       select.value = DEFAULT_LITERT_VERSION;
+    } else {
+      // Assigning a value with no matching <option> silently yields '', which
+      // then dispatches '' as the version and makes every ensureLiteRt() throw
+      // "Refusing to load". Fall back to the newest version actually listed.
+      select.value = versions[0] ?? DEFAULT_LITERT_VERSION;
     }
     
     // Enable dropdown

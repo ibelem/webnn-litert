@@ -22,7 +22,7 @@ import {renderReceiptBadge} from '../../ui/receipt-badge';
 import {createLogger} from '../../ui/log-status';
 import {setupLiteRtVersionDropdown} from '../../ui/litert-version';
 import {getInitialInferenceCount, setupInferenceCount} from '../../ui/inference-count';
-import {getCurrentImageSize} from '../../ui/image-upload';
+import {getCurrentImageSize, setupImageUpload} from '../../ui/image-upload';
 import {EfficientVitStage} from './stage';
 import {EfficientVitLiveStage} from './stage-live';
 
@@ -45,6 +45,12 @@ function currentInputMode(): InputMode {
   return (checked?.value as InputMode | undefined) ?? 'image';
 }
 
+/** ONE logger for the whole page. createLogger keeps its own line buffer
+ *  and renders by replacing #log-status's entire textContent, so a second
+ *  logger on the same element silently wipes the first one's history —
+ *  the first live line used to erase the whole image-mode transcript. */
+const liveLogger = createLogger(el('log-status'));
+
 // ---- Image mode: N-backend compare grid ----
 
 const controller = createCompareController({
@@ -52,7 +58,7 @@ const controller = createCompareController({
   backendBoxes: [...document.querySelectorAll<HTMLInputElement>('input[name="backend"]')],
   litertVersion,
   iterations: getInitialInferenceCount(),
-  logStatusEl: el('log-status'),
+  logger: liveLogger,
   createStage: (canvas) => ({
     stage: new EfficientVitStage(canvas),
     container: canvas,
@@ -102,7 +108,6 @@ if (urlLiveBackend) {
   for (const radio of liveBackendRadios) radio.checked = radio.value === urlLiveBackend;
 }
 
-const liveLogger = createLogger(el('log-status'));
 const liveStage = new EfficientVitLiveStage(liveCanvas);
 let live = false;
 let videoFileUrl: string | null = null;
@@ -235,6 +240,10 @@ for (const radio of liveBackendRadios) {
   });
 }
 
+// Called here, not from an inline <script> in the page. Each page used to
+// run setupInferenceCount() twice — once inline, once here — which
+// registered the slider listener twice and fired every re-measure twice.
+setupImageUpload();
 setupLiteRtVersionDropdown();
 setupInferenceCount();
 

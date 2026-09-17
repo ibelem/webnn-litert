@@ -309,7 +309,14 @@ export async function measureBackend(
     }
     onLog?.(`First Inference Time: ${firstInferenceMs.toFixed(2)} ms`);
     onLog?.(`Time to First Inference: ${metrics.time_to_first_ms.toFixed(2)} ms`);
-    onLog?.(`Inference times (ms): [${samples.map((t) => t.toFixed(2)).join(', ')}]`);
+    // Truncated: at 1000 iterations the untruncated array was a single ~10KB
+    // line in the log panel. The complete array is still on the returned
+    // record, which compare-controller console.logs in full.
+    const LOGGED_TIMES = 50;
+    const shownTimes = samples.slice(0, LOGGED_TIMES).map((t) => t.toFixed(2)).join(', ');
+    const omitted = samples.length - LOGGED_TIMES;
+    onLog?.(`Inference times (ms): [${shownTimes}` +
+        `${omitted > 0 ? `, … +${omitted} more` : ''}]`);
     onLog?.(`Average: ${metrics.average_ms.toFixed(2)} ms`);
     onLog?.(`Median: ${metrics.median_ms.toFixed(2)} ms`);
     onLog?.(`Best: ${metrics.best_ms.toFixed(2)} ms`);

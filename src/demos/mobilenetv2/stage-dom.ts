@@ -86,14 +86,16 @@ export class MobilenetDomStage {
     const list = document.createElement('div');
     list.className = 'classification-results';
 
+    // Built with textContent, not innerHTML: `item.label` comes from a labels
+    // file fetched over the network, so interpolating it into markup is an
+    // injection sink — and it also mangles any label containing & or <.
     top5.forEach((item, rank) => {
       const row = document.createElement('div');
       row.className = 'classification-row';
-      row.innerHTML = `
-        <span class="classification-rank">${rank + 1}</span>
-        <span class="classification-label">${item.label}</span>
-        <span class="classification-score">${item.score.toFixed(2)}</span>
-      `;
+      row.append(
+          span('classification-rank', String(rank + 1)),
+          span('classification-label', item.label),
+          span('classification-score', item.score.toFixed(2)));
       list.appendChild(row);
     });
 
@@ -104,6 +106,9 @@ export class MobilenetDomStage {
     const {signal, isCurrent} = this.scheduler.start();
     const requestId = String(this.nextRequestId++);
     const abortedError = () => new DOMException('superseded by a newer run', 'AbortError');
+    // A superseded run can leave its render-data behind; clearing here stops
+    // it being drawn as if it belonged to the run that follows.
+    this.pendingRenderData = null;
 
     const [cachedModel, labels] = await Promise.all([
       this.loadModelBytes(params.onProgress, params.onLog),
@@ -162,11 +167,23 @@ export class MobilenetDomStage {
         image,
         extra: labels,
       };
-      this.worker.postMessage(runMsg, [image]);
+      // modelBytes MUST be in the transfer list. Omitting it made every run
+      // structured-CLONE the whole model into the worker — a second full copy
+      // of tens of megabytes, per run, on top of the slice() above. Every
+      // other stage transfers it.
+      this.worker.postMessage(runMsg, [modelBytes, image]);
     });
   }
 
   dispose(): void {
+    this.scheduler.cancelCurrent();
     this.worker.terminate();
   }
+}
+
+function span(className: string, text: string): HTMLSpanElement {
+  const el = document.createElement('span');
+  el.className = className;
+  el.textContent = text;
+  return el;
 }

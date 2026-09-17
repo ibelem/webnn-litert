@@ -37,11 +37,19 @@ export function setupInferenceCount(): void {
   updateLegend(initial);
   updateActivePreset(initial);
 
-  // Update legend when slider changes
+  // `input` fires continuously while dragging — label only. Committing the
+  // URL and the re-measure here meant one history.replaceState and one full
+  // re-run PER PIXEL of drag; Chrome rate-limits replaceState and throws once
+  // a drag exceeds it.
   slider.addEventListener('input', () => {
     const value = parseInt(slider.value, 10);
     updateLegend(value);
     updateActivePreset(value);
+  });
+
+  // `change` fires once, when the drag ends — that is the commit point.
+  slider.addEventListener('change', () => {
+    const value = parseInt(slider.value, 10);
     updateUrlParameter(value);
     dispatchInferenceCountEvent(value);
   });

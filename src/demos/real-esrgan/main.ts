@@ -1,6 +1,7 @@
 import {DEFAULT_LITERT_VERSION} from '../../runner/loader';
 import {createCompareController} from '../../runner/compare-controller';
 import {RealEsrganStage} from './stage';
+import {setupImageUpload} from '../../ui/image-upload';
 import {setupLiteRtVersionDropdown} from '../../ui/litert-version';
 import {getInitialInferenceCount, setupInferenceCount} from '../../ui/inference-count';
 
@@ -46,6 +47,10 @@ const controller = createCompareController({
 controller.applyUrlBackendSelection(null);
 
 // Setup LiteRT version dropdown
+// Called here, not from an inline <script> in the page. Each page used to
+// run setupInferenceCount() twice — once inline, once here — which
+// registered the slider listener twice and fired every re-measure twice.
+setupImageUpload();
 setupLiteRtVersionDropdown();
 
 // Setup inference count control
