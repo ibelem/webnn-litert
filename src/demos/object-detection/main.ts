@@ -54,9 +54,9 @@ controller.applyUrlBackendSelection(null);
  *  a backend first" with nothing preselected. */
 const urlLiveBackend = params.get('backend')?.split(',').map((s) => s.trim()).find(isBackend);
 
-for (const box of document.querySelectorAll<HTMLInputElement>('input[name="backend"]')) {
-  box.addEventListener('change', () => void controller.runAll());
-}
+// NOTE: no backend `change` listener here on purpose. createCompareController
+// already registers one (see its own comment); adding a second made one tick
+// fire two passes and measure every backend twice.
 
 // ---- Live mode: single backend, continuous — camera or uploaded video ----
 

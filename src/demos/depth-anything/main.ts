@@ -35,9 +35,9 @@ setupLiteRtVersionDropdown();
 // Setup inference count control
 setupInferenceCount();
 
-for (const box of document.querySelectorAll<HTMLInputElement>('input[name="backend"]')) {
-  box.addEventListener('change', () => void controller.runAll());
-}
+// NOTE: no backend `change` listener here on purpose. createCompareController
+// already registers one (see its own comment); adding a second made one tick
+// fire two passes and measure every backend twice.
 
 // setupLiteRtVersionDropdown() dispatches the initial litertVersionChanged
 // event that starts the first run — no separate runAll() call here, or

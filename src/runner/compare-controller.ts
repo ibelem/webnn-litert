@@ -73,6 +73,11 @@ export function createCompareController(opts: CompareControllerOptions) {
     receiptEl: HTMLDivElement;
     metricLoadEl: HTMLDivElement;
     metricInferenceEl: HTMLDivElement;
+    /** The runKey() this card's displayed result was measured with, or null
+     *  if it has never produced one. Compared before each run so that
+     *  checking a SECOND backend does not re-measure the first — see
+     *  runPass. */
+    measuredWith: string | null;
   }
 
   /** Sizes a FRESH canvas to match the current source image's aspect ratio.
@@ -102,7 +107,25 @@ export function createCompareController(opts: CompareControllerOptions) {
   let generation = 0;
   let currentIterations = iterations;
   let currentLitertVersion = litertVersion;
+  /** Bumped whenever the input image changes, so it participates in runKey()
+   *  the same way version and iteration count do. */
+  let sourceGeneration = 0;
   const logger = createLogger(logStatusEl ?? null);
+
+  /**
+   * Everything that invalidates an existing measurement, as one string. A
+   * card whose `measuredWith` equals this is already showing a current
+   * result and MUST NOT be re-measured: re-running it would re-pay the full
+   * compile (~2s on WebNN) for an unchanged answer, which is what made
+   * ticking a second backend appear to restart the first.
+   *
+   * Un-ticking and re-ticking a backend destroys and recreates its card, so
+   * `measuredWith` resets to null — that stays the way to force a re-run,
+   * including retrying one that failed.
+   */
+  function runKey(): string {
+    return `${currentLitertVersion}|${currentIterations}|${sourceGeneration}`;
+  }
 
   // Listen for inference count changes from the slider
   document.addEventListener('inferenceCountChanged', (e: Event) => {
@@ -123,9 +146,20 @@ export function createCompareController(opts: CompareControllerOptions) {
   // Listen for a new image upload — re-run whatever backends are already
   // checked against it. runAll()'s own guard makes this a no-op when none
   // are selected yet; the visitor's next checkbox click picks it up instead.
-  document.addEventListener('imageUploaded', () => void runAll());
+  document.addEventListener('imageUploaded', () => {
+    sourceGeneration++;
+    void runAll();
+  });
 
-  // Listen for backend checkbox changes and update URL
+  // Listen for backend checkbox changes and update URL.
+  //
+  // This is the ONLY change listener these checkboxes get. Every demo page
+  // used to add a second one of its own (`box.addEventListener('change',
+  // () => void controller.runAll())`), so one tick fired two passes: the
+  // second aborted the first on the main thread, but the first had already
+  // posted its 'run' to the worker and ran to completion there — so every
+  // backend was measured twice per click and the visible result arrived at
+  // roughly double the expected latency. Do not re-add a per-page listener.
   backendBoxes.forEach(box => {
     box.addEventListener('change', () => {
       updateBackendUrlParameter();
@@ -175,7 +209,14 @@ export function createCompareController(opts: CompareControllerOptions) {
     wrap.append(header, stageWrap, receiptEl, metrics);
     gridEl.append(wrap);
 
-    return {stage, receiptEl, metricLoadEl, metricInferenceEl};
+    // Render both rows as pending immediately. Cards are created for every
+    // selected backend up front but measured serially, so the last card can
+    // sit for tens of seconds before its turn — with empty metric divs it
+    // read as broken rather than queued.
+    renderMetricRow(metricLoadEl, 'Load + compile', null, false);
+    renderMetricRow(metricInferenceEl, inferenceLabel(undefined), null, false);
+
+    return {stage, receiptEl, metricLoadEl, metricInferenceEl, measuredWith: null};
   }
 
   function destroyCard(backend: Backend): void {
@@ -200,9 +241,26 @@ export function createCompareController(opts: CompareControllerOptions) {
     }
   }
 
-  async function runAll(): Promise<void> {
+  /** Serializes passes. Two passes must never overlap: each would drive its
+   *  own backend's worker, and two workers measuring at once contend for
+   *  memory bandwidth and thermal headroom — the exact cross-contamination
+   *  "measure serially, present simultaneously" exists to prevent. The old
+   *  code relied on the generation counter alone, which abandons a stale
+   *  pass at its next loop turn but does nothing about the run it is already
+   *  awaiting inside a worker. */
+  let queue: Promise<void> = Promise.resolve();
+
+  function runAll(): Promise<void> {
     const myGeneration = ++generation;
+    // Reconcile SYNCHRONOUSLY, outside the queue, so a ticked backend's card
+    // appears the instant it is ticked even when a measurement is in flight.
     reconcileCards();
+    queue = queue.then(() => runPass(myGeneration)).catch(() => {});
+    return queue;
+  }
+
+  async function runPass(myGeneration: number): Promise<void> {
+    if (myGeneration !== generation) return; // superseded while queued
     const backends = selectedBackends();
 
     if (!backends.length) {
@@ -210,12 +268,17 @@ export function createCompareController(opts: CompareControllerOptions) {
       return;
     }
 
+    const key = runKey();
+
     // Serial by construction: concurrent backends contend for memory
     // bandwidth and thermal headroom and corrupt each other's timings.
     for (const backend of backends) {
       if (myGeneration !== generation) return; // superseded by a newer selection
       const card = cards.get(backend);
       if (!card) continue;
+      // Already showing a current result — ticking another backend must not
+      // restart this one. See runKey().
+      if (card.measuredWith === key) continue;
 
       try {
         const record = await card.stage.run({
@@ -223,6 +286,12 @@ export function createCompareController(opts: CompareControllerOptions) {
           litertVersion: currentLitertVersion,
           iterations: currentIterations,
           warmupRuns,
+          // Wired through so the visitor sees "fetching model… 43%" during a
+          // multi-megabyte download. Previously dropped, which left the page
+          // silent for the longest part of a first run.
+          onProgress: (message) => {
+            if (myGeneration === generation) logger.log(`${backend}: ${message}`);
+          },
           onLog: (message) => {
             if (myGeneration === generation) logger.log(message);
           },
@@ -230,6 +299,7 @@ export function createCompareController(opts: CompareControllerOptions) {
 
         if (myGeneration !== generation || !cards.has(backend)) continue;
 
+        card.measuredWith = key;
         renderReceiptBadge(card.receiptEl, record.delegation, record.warnings, record.error);
         const isFull = record.delegation === 'full';
         renderMetricRow(
@@ -245,6 +315,10 @@ export function createCompareController(opts: CompareControllerOptions) {
       } catch (e) {
         if (e instanceof DOMException && e.name === 'AbortError') continue;
         if (myGeneration !== generation || !cards.has(backend)) continue;
+        // Marked measured so a later tick of a DIFFERENT backend doesn't
+        // silently retry this one on every click. Un-tick and re-tick to
+        // retry — that recreates the card and clears this.
+        card.measuredWith = key;
         const errorMessage = e instanceof Error ? e.message : String(e);
         renderReceiptBadge(card.receiptEl, 'failed', [], errorMessage);
         logger.log(`${backend}: ${errorMessage}`);

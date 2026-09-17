@@ -38,6 +38,10 @@ if (urlBackends?.length) {
 const litertVersion = params.get('litertjs') ?? DEFAULT_LITERT_VERSION;
 
 interface Card {
+  /** The runKey() this card's displayed result was measured with, or null if
+   *  it has never produced one. Ticking a SECOND backend must not re-measure
+   *  an already-current first one — see runKey(). */
+  measuredWith: string | null;
   stage: SelfieMulticlassStage;
   receiptEl: HTMLDivElement;
   metricLoadEl: HTMLDivElement;
@@ -48,6 +52,9 @@ const cards = new Map<Backend, Card>();
 let lastFrame: ImageBitmap | null = null;
 let previewUrl: string | null = null;
 let generation = 0;
+/** Bumped on every webcam capture: a new snapshot invalidates every card's
+ *  result, a new backend tick does not. */
+let captureGeneration = 0;
 
 /**
  * ImageBitmap has no displayable URL of its own — draw it to a scratch
@@ -138,7 +145,16 @@ function createCard(backend: Backend): Card {
   wrap.append(header, stageWrap, receiptEl, metrics);
   gridEl.append(wrap);
 
-  return {stage: new SelfieMulticlassStage(canvas), receiptEl, metricLoadEl, metricInferenceEl};
+  // Pending rows up front: cards are created for every selected backend but
+  // measured serially, so the last one can sit for tens of seconds before its
+  // turn — with empty metric divs it read as broken rather than queued.
+  renderMetricRow(metricLoadEl, 'Load + compile', null, false);
+  renderMetricRow(metricInferenceEl, inferenceLabel(undefined), null, false);
+
+  return {
+    stage: new SelfieMulticlassStage(canvas),
+    receiptEl, metricLoadEl, metricInferenceEl, measuredWith: null,
+  };
 }
 
 function destroyCard(backend: Backend): void {
@@ -147,6 +163,15 @@ function destroyCard(backend: Backend): void {
   card.stage.dispose();
   document.querySelector(`.compare-card[data-backend="${backend}"]`)?.remove();
   cards.delete(backend);
+}
+
+/** Everything that invalidates an existing measurement, as one string. A
+ *  card whose `measuredWith` equals this is already showing a current result
+ *  and MUST NOT be re-measured — re-running it would re-pay the full compile
+ *  (~2s on WebNN) for an unchanged answer. Un-tick and re-tick to force one,
+ *  which recreates the card and clears `measuredWith`. */
+function runKey(): string {
+  return `${currentLitertVersion}|${currentIterations}|${captureGeneration}`;
 }
 
 function selectedBackends(): Backend[] {
@@ -182,10 +207,15 @@ async function runAll(): Promise<void> {
     logger.log('Select at least one backend');
     return;
   }
+
+  const key = runKey();
+
   for (const backend of backends) {
     if (myGeneration !== generation) return;
     const card = cards.get(backend);
     if (!card || !lastFrame) continue;
+    // Already showing a current result — see runKey().
+    if (card.measuredWith === key) continue;
 
     try {
       await card.stage.setFrame(lastFrame);
@@ -194,6 +224,11 @@ async function runAll(): Promise<void> {
         litertVersion: currentLitertVersion,
         iterations: currentIterations,
         warmupRuns: 3,
+        // Wired through so the visitor sees "fetching model... 43%" during a
+        // multi-megabyte download, instead of a silent page.
+        onProgress: (message) => {
+          if (myGeneration === generation) logger.log(`${backend}: ${message}`);
+        },
         onLog: (message) => {
           if (myGeneration === generation) logger.log(message);
         },
@@ -201,6 +236,7 @@ async function runAll(): Promise<void> {
 
       if (myGeneration !== generation || !cards.has(backend)) continue;
 
+      card.measuredWith = key;
       renderReceiptBadge(card.receiptEl, record.delegation, record.warnings, record.error);
       const isFull = record.delegation === 'full';
       renderMetricRow(
@@ -214,6 +250,9 @@ async function runAll(): Promise<void> {
     } catch (e) {
       if (e instanceof DOMException && e.name === 'AbortError') continue;
       if (myGeneration !== generation || !cards.has(backend)) continue;
+      // Marked measured so ticking a DIFFERENT backend doesn't silently
+      // retry this one on every click; un-tick and re-tick to retry.
+      card.measuredWith = key;
       const errorMessage = e instanceof Error ? e.message : String(e);
       renderReceiptBadge(card.receiptEl, 'failed', [], errorMessage);
       logger.log(`${backend}: ${errorMessage}`);
@@ -228,6 +267,7 @@ captureButton.addEventListener('click', () => {
     try {
       lastFrame?.close();
       lastFrame = await captureOneFrame();
+      captureGeneration++; // new snapshot — every card's result is now stale
       await showSnapshotPreview(lastFrame);
       logger.log('snapshot captured');
       await runAll();
