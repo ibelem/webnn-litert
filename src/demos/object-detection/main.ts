@@ -48,6 +48,12 @@ const controller = createCompareController({
 
 controller.applyUrlBackendSelection(null);
 
+/** `?backend=` is comma-separated for the compare grid, but live mode runs
+ *  exactly one backend — take the first valid entry so arriving at
+ *  `?backend=webnn-gpu` and switching to Video/Camera doesn't land on "select
+ *  a backend first" with nothing preselected. */
+const urlLiveBackend = params.get('backend')?.split(',').map((s) => s.trim()).find(isBackend);
+
 for (const box of document.querySelectorAll<HTMLInputElement>('input[name="backend"]')) {
   box.addEventListener('change', () => void controller.runAll());
 }
@@ -71,6 +77,10 @@ const imageModePanel = el<HTMLDivElement>('image-mode-panel');
 const liveModePanel = el<HTMLDivElement>('live-mode-panel');
 const compareGrid = el<HTMLDivElement>('compare-grid');
 const liveGrid = el<HTMLDivElement>('live-grid');
+
+if (urlLiveBackend) {
+  for (const radio of liveBackendRadios) radio.checked = radio.value === urlLiveBackend;
+}
 
 const liveLogger = createLogger(el('log-status'));
 const liveStage = new ObjectDetectionLiveStage(liveCanvas);

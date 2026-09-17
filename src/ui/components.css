@@ -5,6 +5,22 @@
  * components exist to prevent. Tokens only, enforced by stylelint.
  */
 
+/*
+ * The UA stylesheet's `[hidden] { display: none }` has specificity 0,0,0, so
+ * ANY author rule that sets `display` outranks it and `el.hidden = true`
+ * silently does nothing. That is not hypothetical: `.compare-grid` below sets
+ * `display: grid`, which left object-detection's image compare grid on screen
+ * after switching to video/camera mode — the page looked like it was still
+ * doing image detection because it was still showing the image UI.
+ *
+ * Every mode switch on this site is an `el.hidden` toggle, so fix it once
+ * here rather than per element. `!important` is required: the whole point is
+ * to outrank author `display` rules, which a plain declaration cannot do.
+ */
+[hidden] {
+  display: none !important;
+}
+
 /* Site header with logo */
 .site-header {
   padding: var(--space-2) var(--space-4);
