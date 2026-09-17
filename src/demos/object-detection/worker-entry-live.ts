@@ -93,9 +93,14 @@ async function handleStart(msg: Extract<MainToLiveWorkerMessage, {type: 'start'}
             frame.close();
           }
 
+          // One object for both ends: preprocess reads it to skip the
+          // frame-cache copy it would otherwise make (render uses this
+          // frame directly), render reads it for the backdrop.
+          const extra = {frame: image};
+
           let inputs: Record<string, InstanceType<LiteRt['Tensor']>> | null = null;
           try {
-            inputs = preprocessYolo26(mod, inputDetails, image);
+            inputs = preprocessYolo26(mod, inputDetails, image, extra);
 
             const t0 = performance.now();
             const out = await compiled.run(inputs);
@@ -115,7 +120,7 @@ async function handleStart(msg: Extract<MainToLiveWorkerMessage, {type: 'start'}
               if (d !== undefined) named[name] = d;
             });
 
-            renderYolo26(activeCtx, outputDetails, named, {frame: image});
+            renderYolo26(activeCtx, outputDetails, named, extra);
             for (const t of outTensors) t.delete();
 
             const now = performance.now();

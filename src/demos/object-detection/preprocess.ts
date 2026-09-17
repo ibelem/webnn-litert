@@ -2,6 +2,7 @@ import type {TensorDetails} from '@litertjs/core';
 
 import type {LiteRt} from '../../runner/loader';
 import {setLastFrame} from './frame-cache';
+import {isYolo26LiveExtra} from './render';
 
 /**
  * Preprocess image for YOLOv2.6 detection.
@@ -15,17 +16,23 @@ export function preprocessYolo26(
     mod: LiteRt,
     details: readonly TensorDetails[],
     image: ImageBitmap,
+    extra?: unknown,
 ): Record<string, InstanceType<LiteRt['Tensor']>> {
   const input = details[0];
   if (!input) throw new Error('yolo26: model declares no inputs');
 
   // Cache the full-resolution frame for render() to draw as the boxes'
   // backdrop — `image` itself is closed right after this function returns.
-  const frame = new OffscreenCanvas(image.width, image.height);
-  const frameCtx = frame.getContext('2d');
-  if (frameCtx) {
-    frameCtx.drawImage(image, 0, 0);
-    setLastFrame(frame);
+  // SKIPPED in live mode: that worker hands render() the same ImageBitmap it
+  // ran inference on (Yolo26LiveExtra), so this copy would be dead work — a
+  // fresh full-res OffscreenCanvas allocated and blitted 30x a second.
+  if (!isYolo26LiveExtra(extra)) {
+    const frame = new OffscreenCanvas(image.width, image.height);
+    const frameCtx = frame.getContext('2d');
+    if (frameCtx) {
+      frameCtx.drawImage(image, 0, 0);
+      setLastFrame(frame);
+    }
   }
 
   // YOLO models typically have NCHW input shape [1, 3, H, W]
@@ -40,7 +47,11 @@ export function preprocessYolo26(
 
   // Resize to model input dimensions
   const canvas = new OffscreenCanvas(width, height);
-  const ctx = canvas.getContext('2d');
+  // willReadFrequently: the getImageData() below is a GPU->CPU readback on
+  // every single frame of the live loop. Without this hint Chrome keeps the
+  // canvas GPU-backed and stalls the pipeline per frame (it logs the
+  // "faster with the willReadFrequently attribute" warning saying so).
+  const ctx = canvas.getContext('2d', {willReadFrequently: true});
   if (!ctx) throw new Error('OffscreenCanvas 2D context unavailable for preprocessing');
 
   // Draw resized image

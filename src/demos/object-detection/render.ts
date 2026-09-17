@@ -15,7 +15,7 @@ export interface Yolo26LiveExtra {
   frame: ImageBitmap;
 }
 
-function isYolo26LiveExtra(v: unknown): v is Yolo26LiveExtra {
+export function isYolo26LiveExtra(v: unknown): v is Yolo26LiveExtra {
   return typeof v === 'object' && v !== null && 'frame' in v;
 }
 

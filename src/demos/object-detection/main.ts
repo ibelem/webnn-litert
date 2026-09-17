@@ -147,7 +147,14 @@ async function acquireTrack(mode: InputMode): Promise<MediaStreamTrack> {
   const stream = sourceVideo.captureStream();
   const [track] = stream.getVideoTracks();
   if (!track) throw new Error('video file has no video track');
-  return track;
+  // Hand over a CLONE, never the element's own track. The stage owns
+  // stopping whatever it is given, and a stopped track is dead forever —
+  // but captureStream() on a media element may hand back the same cached
+  // stream on every call, so stopping the original would make the second
+  // Start silently produce no frames (compile succeeds, 'ready' fires,
+  // the reader sees done immediately, canvas stays blank). Stopping a
+  // clone leaves the element's track live for the next Start.
+  return track.clone();
 }
 
 async function startLive(): Promise<void> {
