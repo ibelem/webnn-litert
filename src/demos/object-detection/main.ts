@@ -140,7 +140,11 @@ videoUpload.addEventListener('change', () => {
 
 /** A camera track from getUserMedia, or one taken from the uploaded video's
  *  own playback via captureStream() — the live stage treats both
- *  identically (see ObjectDetectionLiveStage's doc comment). */
+ *  identically (see ObjectDetectionLiveStage's doc comment). Handed to the
+ *  stage as a CALLBACK, not called here: the stage defers it until the model
+ *  is compiled, so the camera does not sit open through the ~2s WebNN build.
+ *  The video is muted, so play() needs no transient activation and is safe
+ *  to call this late. */
 async function acquireTrack(mode: InputMode): Promise<MediaStreamTrack> {
   if (mode === 'camera') {
     const stream = await navigator.mediaDevices.getUserMedia({video: {width: 640, height: 480}});
@@ -182,8 +186,7 @@ async function startLive(): Promise<void> {
   setLiveControlsDisabled(true);
 
   try {
-    const track = await acquireTrack(mode);
-    await liveStage.start(track, backend, currentLitertVersion, {
+    await liveStage.start(() => acquireTrack(mode), backend, currentLitertVersion, {
       onReady: (receipt) => {
         renderReceiptBadge(liveReceiptEl, receipt.delegation, receipt.warnings);
         const isFull = receipt.delegation === 'full';

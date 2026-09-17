@@ -31,6 +31,15 @@ const STATS_THROTTLE_MS = 150;
 let ctx: OffscreenCanvasRenderingContext2D | null = null;
 let stopRequested = false;
 
+/**
+ * Resolves when 'attach' delivers the camera stream — or with null if 'stop'
+ * arrives first, which happens whenever the visitor denies the camera prompt
+ * or cancels during the ~2s WebNN compile. Null unwinds handleCompile
+ * normally (deleting the compiled model, posting 'stopped') instead of
+ * surfacing a cancellation as an error.
+ */
+let deliverReadable: ((r: ReadableStream<VideoFrame> | null) => void) | null = null;
+
 function post(message: LiveWorkerToMainMessage): void {
   self.postMessage(message);
 }
@@ -43,23 +52,39 @@ self.onmessage = (event: MessageEvent<MainToLiveWorkerMessage>) => {
     ctx = c;
     return;
   }
-  if (msg.type === 'start') {
-    void handleStart(msg);
+  if (msg.type === 'compile') {
+    void handleCompile(msg);
+    return;
+  }
+  if (msg.type === 'attach') {
+    deliverReadable?.(msg.readable);
+    deliverReadable = null;
     return;
   }
   // 'stop': the loop below polls this flag between frames. The main thread
   // waits for 'stopped' before it lets the visitor start a new backend, so
-  // this never has to interrupt a 'start' already in flight.
+  // this never has to interrupt a compile already in flight — but it must
+  // release a compile parked waiting for 'attach', or that worker would sit
+  // holding a compiled model forever and never acknowledge the stop.
   stopRequested = true;
+  deliverReadable?.(null);
+  deliverReadable = null;
 };
 
-async function handleStart(msg: Extract<MainToLiveWorkerMessage, {type: 'start'}>): Promise<void> {
+async function handleCompile(msg: Extract<MainToLiveWorkerMessage, {type: 'compile'}>):
+    Promise<void> {
   const activeCtx = ctx;
   if (!activeCtx) {
     post({type: 'error', message: 'worker not initialized'});
     return;
   }
   stopRequested = false;
+
+  // Armed BEFORE the first await so an 'attach' that arrives while the
+  // compile is still running is captured rather than dropped.
+  const readablePromise = new Promise<ReadableStream<VideoFrame> | null>((resolve) => {
+    deliverReadable = resolve;
+  });
 
   try {
     const mod = await ensureLiteRt(
@@ -87,7 +112,13 @@ async function handleStart(msg: Extract<MainToLiveWorkerMessage, {type: 'start'}
       const inputDetails = compiled.getInputDetails();
       const outputDetails = compiled.getOutputDetails();
 
-      const reader = msg.readable.getReader();
+      // Compile is done and the receipt is already on screen; the main
+      // thread opens the camera now and sends 'attach'. Null means it was
+      // stopped or the camera was denied — unwind cleanly, no error.
+      const readable = await readablePromise;
+      if (!readable || stopRequested) return;
+
+      const reader = readable.getReader();
       let lastStatsAt = 0;
 
       try {
@@ -148,6 +179,7 @@ async function handleStart(msg: Extract<MainToLiveWorkerMessage, {type: 'start'}
   } finally {
     // Camera release is stage.ts's job (see file doc comment) — this worker
     // never had the track, only the transferred readable stream.
+    deliverReadable = null;
     activeCtx.clearRect(0, 0, activeCtx.canvas.width, activeCtx.canvas.height);
     post({type: 'stopped'});
   }

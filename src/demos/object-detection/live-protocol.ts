@@ -13,11 +13,28 @@ export interface LiveInitMessage {
   canvas: OffscreenCanvas;
 }
 
-export interface LiveStartMessage {
-  type: 'start';
+/**
+ * Deliberately carries NO frame source. Compile is split from attach so the
+ * camera (or an uploaded video's playback) does not start until the model is
+ * downloaded and compiled: WebNN's graph build alone is ~2 seconds, and a
+ * single combined message forced the camera light on for that whole time
+ * before a single frame was used. The worker replies 'ready' when the
+ * compile is done; only then does stage-live.ts acquire the track and send
+ * 'attach'.
+ */
+export interface LiveCompileMessage {
+  type: 'compile';
   backend: Backend;
   litertVersion: string;
   modelBytes: ArrayBuffer;
+}
+
+/**
+ * Hands the compiled-and-waiting worker its frame source, starting the loop.
+ * Sent only after 'ready'.
+ */
+export interface LiveAttachMessage {
+  type: 'attach';
   /**
    * Transferred, not copied. MediaStreamTrack itself is NOT transferable
    * (Chrome throws "does not have a transferable type") — the stage
@@ -32,11 +49,14 @@ export interface LiveStopMessage {
   type: 'stop';
 }
 
-export type MainToLiveWorkerMessage = LiveInitMessage | LiveStartMessage | LiveStopMessage;
+export type MainToLiveWorkerMessage =
+    LiveInitMessage | LiveCompileMessage | LiveAttachMessage | LiveStopMessage;
 
 /** The delegation receipt — sent once, right after compile and before the
- *  loop starts. Never show a live inference number without this: the same
- *  rule as every other demo, applied to a continuous one. */
+ *  frame source is even acquired. Never show a live inference number without
+ *  this: the same rule as every other demo, applied to a continuous one. It
+ *  is also the main thread's cue that compiling is finished and it may now
+ *  open the camera or start the video (see LiveCompileMessage). */
 export interface LiveReadyMessage {
   type: 'ready';
   delegation: Delegation;
