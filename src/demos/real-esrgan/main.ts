@@ -3,7 +3,6 @@ import {createCompareController} from '../../runner/compare-controller';
 import {RealEsrganStage} from './stage';
 import {setupLiteRtVersionDropdown} from '../../ui/litert-version';
 import {getInitialInferenceCount, setupInferenceCount} from '../../ui/inference-count';
-import {getCurrentImageSize} from '../../ui/image-upload';
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
@@ -24,10 +23,24 @@ const controller = createCompareController({
     stage: new RealEsrganStage(canvas),
     container: canvas,
   }),
-  // Canvas matches the source image's aspect ratio, capped at 384 on the
-  // longer side — this is display sizing only. The model's own fixed tile
-  // size (not this canvas) determines actual compute cost, unaffected.
-  getSourceSize: getCurrentImageSize,
+  // Sized to the MODEL OUTPUT, not the source image — and deliberately no
+  // `getSourceSize`.
+  //
+  // Both of those were wrong before. The canvas was sized from the source
+  // photo and capped at the shared 384 default, so this model's 512x512
+  // result was downsampled to ~384x208 on its way to the screen: the one
+  // thing a 4x upscaler produces, more pixels, was discarded in the last
+  // drawImage of the frame. And the source's aspect ratio is now irrelevant
+  // anyway, because preprocess takes a square native-resolution crop rather
+  // than squashing the whole photo into the tile.
+  //
+  // 512 is this model's declared output (128x128 in, 4x). The canvas has to
+  // exist before the worker compiles and can never be resized afterwards
+  // (transferControlToOffscreen), so it cannot be read from the model — a
+  // different model here just means render() scales to fit, which degrades
+  // sharpness but does not break.
+  canvasWidth: 512,
+  canvasHeight: 512,
 });
 
 controller.applyUrlBackendSelection(null);

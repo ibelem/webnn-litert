@@ -20,10 +20,12 @@
   <div class="demo-header">
     <h1>Real-ESRGAN x4</h1>
     <p class="demo-lede">
-      4x super-resolution upscaling, one tile. Heaviest of the five demos — the
-      reference tiles an arbitrary-size photo and stitches the results back together;
-      this page upscales a single model-input-sized tile so the compare view's timing
-      stays directly comparable to every other demo. Sample image:
+      4x super-resolution on a native-resolution crop, split against plain bicubic
+      interpolation — left half free, right half the model. Heaviest of the five demos.
+      The reference tiles a whole photo and stitches the results back together; this
+      page upscales a single centre tile, so you see a patch rather than the full
+      image and the compare view's timing stays directly comparable to every other
+      demo. Sample image:
       <a href="https://commons.wikimedia.org/wiki/File:Welsh_Springer_Spaniel.jpg">Wikimedia
       Commons</a>
     </p>
