@@ -235,13 +235,19 @@
 }
 
 /* The hidden compare grid is display:none and takes no grid slot, so the two
-   columns are the live grid and the log. */
+   columns are the live grid and the log.
+ *
+ * `height: 0` + `min-height: 100%` pins the log to EXACTLY the card's height,
+ * which `align-self: stretch` alone could not do. The grid row is sized to
+ * the tallest item, so a long transcript grew the row and left the log taller
+ * than the card beside it. `height: 0` makes this item contribute nothing to
+ * that row sizing — the row becomes the card's height alone — and
+ * `min-height: 100%` then resolves against the now-definite grid area and
+ * fills it. Overflow keeps scrolling, so nothing is lost. */
 .demo-content--live .log-status {
   margin-top: 0;
-  /* Fills the row the live card defines, instead of the fixed 10rem it gets
-     under the compare grid — a live session's transcript runs for as long as
-     the camera does, so the extra height is worth having. */
-  align-self: stretch;
+  height: 0;
+  min-height: 100%;
   max-height: none;
 }
 
@@ -257,7 +263,8 @@
 
   .demo-content--live .log-status {
     margin-top: var(--space-4);
-    align-self: auto;
+    height: auto;
+    min-height: 0;
     max-height: 10rem;
   }
 }

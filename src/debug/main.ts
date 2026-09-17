@@ -77,7 +77,10 @@ if (urlBackends?.length) {
 const urlInference = params.get('inference');
 if (urlInference) {
   const value = parseInt(urlInference, 10);
-  if (!isNaN(value) && value >= 1 && value <= 200) {
+  // Upper bound matches the demo pages' inference-count slider. They used to
+  // disagree — 1000 there, 200 here — so the SAME `?inference=` value was
+  // honoured on a demo page and silently ignored on this one.
+  if (!isNaN(value) && value >= 1 && value <= 1000) {
     itersInput.value = value.toString();
   }
 }

@@ -29,7 +29,7 @@
       <input type="text" id="version" size="10" pattern="\d+\.\d+\.\d+(-[a-z0-9.]+)?">
     </label>
     <label>iterations
-      <input type="number" id="iters" value="50" min="1" max="200">
+      <input type="number" id="iters" value="50" min="1" max="1000">
     </label>
     <label>warmup
       <input type="number" id="warmup" value="3" min="0" max="20">
@@ -52,7 +52,7 @@
 
   <div id="isolation-warning" hidden class="warn-banner"></div>
 
-  <p class="lede" style="font-size: var(--text-sm)">
+  <p class="lede lede--note">
     Every timing below is <strong>time to usable output</strong> — input handoff through
     the awaited output readback, not raw kernel time. For large-output demos (e.g. 4x
     upscaling) the readback can dominate the number; see <code>measure.ts</code>.
@@ -76,7 +76,7 @@
   <div class="panel" id="env">reading…</div>
 
   <h2>Captured LiteRT console output</h2>
-  <p class="lede" style="font-size: var(--text-sm)">
+  <p class="lede lede--note">
     Partial delegation is reported <strong>nowhere else</strong>. This panel is half the
     evidence the site rests on.
   </p>

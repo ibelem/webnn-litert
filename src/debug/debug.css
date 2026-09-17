@@ -212,6 +212,14 @@ h2 {
   margin-top: var(--space-6);
 }
 
+/* The two explanatory notes under the controls and above the console panel.
+   Were inline `style="font-size: var(--text-sm)"` on the elements — inline
+   styles are invisible to stylelint, which makes them the one place a raw
+   value could slip past the design-system boundary unnoticed. */
+.lede--note {
+  font-size: var(--text-sm);
+}
+
 .warn-banner {
   border: var(--border-hairline) solid var(--delegation-partial);
   background: var(--delegation-partial-tint);
