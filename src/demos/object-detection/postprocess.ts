@@ -32,7 +32,7 @@ export interface Detection {
 /**
  * Postprocess YOLO output to extract detections.
  * 
- * YOLOv2.6 output format:
+ * YOLO26n output format:
  * - Shape: [1, 84, 8400] where 84 = 4 (bbox) + 80 (classes), 8400 = number of anchors
  * - Bbox format: [x_center, y_center, width, height] in normalized coordinates
  * 

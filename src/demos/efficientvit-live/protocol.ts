@@ -71,6 +71,10 @@ export interface LiveReadyMessage {
 export interface LiveStatsMessage {
   type: 'stats';
   inferenceMs: number;
+  /** Achieved end-to-end frame rate, smoothed. NOT 1000/inferenceMs: it
+   *  includes frame read, preprocess, postprocess and draw, so it matches
+   *  what the visitor sees on the canvas rather than kernel time. */
+  fps: number;
 }
 
 export interface LiveLogMessage {

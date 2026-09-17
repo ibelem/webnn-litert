@@ -17,6 +17,7 @@
 import type {LiteRt} from '../../runner/loader';
 import {ensureLiteRt} from '../../runner/loader';
 import {compileForBackend, loadModeFor, type OutputData} from '../../runner/measure';
+import {computeMetrics} from '../../runner/metrics';
 import {preprocessEfficientVit} from '../efficientvit-seg/preprocess';
 import {renderEfficientVitLive} from './render';
 import type {LiveWorkerToMainMessage, MainToLiveWorkerMessage} from './protocol';
@@ -27,6 +28,15 @@ const PALETTE_URL = '/data/ade20k_class_colors.json';
 // ~6-7 updates/sec — legible on the metric row without jittering it every
 // frame, same spirit as measure.ts throttling its "Inferencing i/n" lines.
 const STATS_THROTTLE_MS = 150;
+// A live loop has no "run 37 of 50" to report, so the log gets a periodic
+// heartbeat instead of per-frame spam — slow enough to read, frequent enough
+// to prove the loop is alive.
+const LOG_THROTTLE_MS = 2000;
+// Percentiles over a rolling window, not the whole session: 1000 samples is
+// plenty for a stable median/p90 and bounds memory on a camera left open for
+// hours. `frames` below still counts every frame.
+// ponytail: fixed window, revisit only if a session-wide p90 is ever needed.
+const MAX_SAMPLES = 1000;
 
 let ctx: OffscreenCanvasRenderingContext2D | null = null;
 let stopRequested = false;
@@ -120,6 +130,12 @@ async function handleCompile(msg: Extract<MainToLiveWorkerMessage, {type: 'compi
 
       const reader = readable.getReader();
       let lastStatsAt = 0;
+      let lastLogAt = performance.now();
+      let frames = 0;
+      let firstInferenceMs = 0;
+      let emaFrameMs = 0;
+      let lastFrameAt = 0;
+      const samples: number[] = [];
 
       try {
         while (!stopRequested) {
@@ -158,10 +174,34 @@ async function handleCompile(msg: Extract<MainToLiveWorkerMessage, {type: 'compi
             renderEfficientVitLive(activeCtx, outputDetails, named, {colors: palette, frame: image});
             for (const t of outTensors) t.delete();
 
+            frames++;
+            if (frames === 1) firstInferenceMs = inferenceMs;
+            samples.push(inferenceMs);
+            if (samples.length > MAX_SAMPLES) samples.shift();
+
+            // Achieved end-to-end frame rate, NOT 1000/inferenceMs: it counts
+            // the read, preprocess, postprocess and draw the visitor actually
+            // waits through, so it matches what they see on the canvas.
+            // Smoothed, because an unfiltered per-frame rate is unreadable.
             const now = performance.now();
+            if (lastFrameAt) {
+              const delta = now - lastFrameAt;
+              emaFrameMs = emaFrameMs ? emaFrameMs * 0.9 + delta * 0.1 : delta;
+            }
+            lastFrameAt = now;
+            const fps = emaFrameMs > 0 ? 1000 / emaFrameMs : 0;
+
             if (now - lastStatsAt >= STATS_THROTTLE_MS) {
               lastStatsAt = now;
-              post({type: 'stats', inferenceMs});
+              post({type: 'stats', inferenceMs, fps});
+            }
+            if (now - lastLogAt >= LOG_THROTTLE_MS) {
+              lastLogAt = now;
+              post({
+                type: 'log',
+                message: `${msg.backend}: ${inferenceMs.toFixed(1)} ms · ` +
+                    `${fps.toFixed(1)} fps · ${frames} frames`,
+              });
             }
           } finally {
             image.close();
@@ -170,6 +210,26 @@ async function handleCompile(msg: Extract<MainToLiveWorkerMessage, {type: 'compi
         }
       } finally {
         reader.releaseLock();
+        // Session summary. The full schema goes to the devtools console per
+        // CLAUDE.md's "compute all, display little"; the log panel gets one
+        // compact line. Percentiles are genuinely more meaningful here than
+        // on a 50-iteration discrete run — they cover thousands of frames —
+        // but they are still not headline numbers, so they stay out of the
+        // two on-page metric rows.
+        if (samples.length) {
+          const metrics = computeMetrics(samples, loadAndCompileMs, firstInferenceMs);
+          post({
+            type: 'log',
+            message: `${msg.backend}: stopped after ${frames} frames — median ` +
+                `${metrics.median_ms.toFixed(1)} ms, best ${metrics.best_ms.toFixed(1)} ms, ` +
+                `p90 ${metrics.p90_ms.toFixed(1)} ms, ` +
+                `${metrics.throughput_fps.toFixed(1)} fps avg`,
+          });
+          console.log(msg.backend, {
+            mode: 'live', frames, sampleWindow: samples.length,
+            delegation, warnings, ...metrics,
+          });
+        }
       }
     } finally {
       compiled.delete();

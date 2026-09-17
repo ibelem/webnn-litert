@@ -23,6 +23,7 @@ const labelEl = el<HTMLDivElement>('live-label');
 const receiptEl = el<HTMLDivElement>('live-receipt');
 const metricLoadEl = el<HTMLDivElement>('live-metric-load');
 const metricInferenceEl = el<HTMLDivElement>('live-metric-inference');
+const metricFpsEl = el<HTMLDivElement>('live-metric-fps');
 const toggleButton = el<HTMLButtonElement>('live-toggle');
 const logStatusEl = el<HTMLDivElement>('log-status');
 const backendRadios = [...document.querySelectorAll<HTMLInputElement>('input[name="backend"]')];
@@ -74,10 +75,12 @@ async function startLive(): Promise<void> {
         // The live loop starts right after this — the "Inference" row fills
         // in on the first 'stats' message.
         renderMetricRow(metricInferenceEl, 'Inference (live)', null, !isFull);
+        renderMetricRow(metricFpsEl, 'Frame rate', null, !isFull, 'fps');
       },
-      onStats: (inferenceMs) => {
+      onStats: (inferenceMs, fps) => {
         const isFull = receiptEl.classList.contains('receipt-badge--full');
         renderMetricRow(metricInferenceEl, 'Inference (live)', inferenceMs, !isFull);
+        renderMetricRow(metricFpsEl, 'Frame rate', fps, !isFull, 'fps');
       },
       onLog: (message) => logger.log(message),
       onError: (message) => {

@@ -40,6 +40,19 @@ export interface CompareControllerOptions {
   getSourceSize?: () => {width: number; height: number} | null;
   iterations?: number;
   warmupRuns?: number;
+  /**
+   * Optional gate on whether this grid may run at all right now. Defaults to
+   * always-on.
+   *
+   * object-detection hosts BOTH this discrete compare grid and a continuous
+   * live mode on one page, sharing one log panel. Without this gate the grid
+   * auto-ran its full warmup + N-iteration measurement on page load whenever
+   * `?backend=` was present — even with the visitor in Video/Camera mode —
+   * so the log filled with "Warming up (3 runs)" / "Inferencing 50/50" /
+   * "P90" lines from a discrete run they never asked for, while the live
+   * canvas sat empty. Those two modes must never run at the same time.
+   */
+  enabled?: () => boolean;
 }
 
 /**
@@ -60,6 +73,7 @@ export function createCompareController(opts: CompareControllerOptions) {
   const {
     gridEl, backendBoxes, litertVersion, logStatusEl, createStage, getSourceSize,
     canvasWidth = 384, canvasHeight = 384,
+    enabled = () => true,
     // 1 matches the inference-count slider's own HTML default — a caller
     // should really pass ui/inference-count.ts's getInitialInferenceCount()
     // instead of relying on this, so a `?inference=` URL override is honored
@@ -251,6 +265,10 @@ export function createCompareController(opts: CompareControllerOptions) {
   let queue: Promise<void> = Promise.resolve();
 
   function runAll(): Promise<void> {
+    // Gated modes (see `enabled`) must not even reconcile: creating cards for
+    // a hidden grid would spawn a worker per backend behind the visitor's back.
+    if (!enabled()) return Promise.resolve();
+
     const myGeneration = ++generation;
     // Reconcile SYNCHRONOUSLY, outside the queue, so a ticked backend's card
     // appears the instant it is ticked even when a measurement is in flight.
@@ -261,6 +279,7 @@ export function createCompareController(opts: CompareControllerOptions) {
 
   async function runPass(myGeneration: number): Promise<void> {
     if (myGeneration !== generation) return; // superseded while queued
+    if (!enabled()) return; // mode switched while this pass sat in the queue
     const backends = selectedBackends();
 
     if (!backends.length) {

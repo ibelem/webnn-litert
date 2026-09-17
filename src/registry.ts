@@ -117,7 +117,7 @@ export const DEMOS: readonly DemoEntry[] = [
   },
   {
     slug: 'object-detection',
-    title: 'YOLOv2.6 Object Detection',
+    title: 'YOLO26n Object Detection',
     blurb: 'Real-time object detection with bounding boxes',
     model: {
       url: 'https://huggingface.co/webnn/yolo26n/resolve/main/tflite/model.tflite',

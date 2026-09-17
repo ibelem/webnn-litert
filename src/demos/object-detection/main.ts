@@ -44,6 +44,12 @@ const controller = createCompareController({
   getSourceSize: getCurrentImageSize,
   canvasWidth: 640,
   canvasHeight: 640,
+  // The compare grid is for Image mode ONLY. Without this gate it auto-ran a
+  // full warmup + N-iteration measurement on load whenever `?backend=` was
+  // present, even in Video/Camera mode — which is why that mode showed an
+  // empty canvas while the shared log filled with "Inferencing 50/50" and
+  // "P90" lines from a discrete run nobody asked for.
+  enabled: () => currentInputMode() === 'image',
 });
 
 controller.applyUrlBackendSelection(null);
@@ -65,6 +71,7 @@ const liveLabelEl = el<HTMLDivElement>('live-label');
 const liveReceiptEl = el<HTMLDivElement>('live-receipt');
 const liveMetricLoadEl = el<HTMLDivElement>('live-metric-load');
 const liveMetricInferenceEl = el<HTMLDivElement>('live-metric-inference');
+const liveMetricFpsEl = el<HTMLDivElement>('live-metric-fps');
 const liveToggleButton = el<HTMLButtonElement>('live-toggle');
 const sourceVideo = el<HTMLVideoElement>('source-video');
 const videoUpload = el<HTMLInputElement>('video-upload');
@@ -123,6 +130,11 @@ function applyInputMode(mode: InputMode): void {
   videoSourceControls.hidden = mode !== 'video';
   liveToggleButton.textContent = mode === 'camera' ? 'Start Camera' : 'Start Detection';
   liveToggleButton.disabled = mode === 'video' && !videoFileUrl;
+
+  // Switching back into Image mode re-opens the gate above; nothing else
+  // would kick the grid, since its own listeners only fire on visitor input.
+  // Already-measured backends are skipped by runKey(), so this is free.
+  if (isImage) void controller.runAll();
 }
 
 for (const radio of inputModeRadios) {
@@ -192,10 +204,12 @@ async function startLive(): Promise<void> {
         const isFull = receipt.delegation === 'full';
         renderMetricRow(liveMetricLoadEl, 'Load + compile', receipt.loadAndCompileMs, !isFull);
         renderMetricRow(liveMetricInferenceEl, 'Inference (live)', null, !isFull);
+        renderMetricRow(liveMetricFpsEl, 'Frame rate', null, !isFull, 'fps');
       },
-      onStats: (inferenceMs) => {
+      onStats: (inferenceMs, fps) => {
         const isFull = liveReceiptEl.classList.contains('receipt-badge--full');
         renderMetricRow(liveMetricInferenceEl, 'Inference (live)', inferenceMs, !isFull);
+        renderMetricRow(liveMetricFpsEl, 'Frame rate', fps, !isFull, 'fps');
       },
       onLog: (message) => liveLogger.log(message),
       onError: (message) => {

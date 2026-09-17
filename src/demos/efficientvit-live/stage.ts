@@ -18,7 +18,7 @@ export interface LiveReceipt {
 
 export interface StartCallbacks {
   onReady: (receipt: LiveReceipt) => void;
-  onStats: (inferenceMs: number) => void;
+  onStats: (inferenceMs: number, fps: number) => void;
   onLog?: (message: string) => void;
   onError: (message: string) => void;
 }
@@ -93,7 +93,7 @@ export class EfficientVitLiveStage {
         });
         this.resolveReady?.();
       } else if (msg.type === 'stats') {
-        callbacks.onStats(msg.inferenceMs);
+        callbacks.onStats(msg.inferenceMs, msg.fps);
       } else if (msg.type === 'error') {
         callbacks.onError(msg.message);
         this.rejectReady?.(new Error(msg.message));

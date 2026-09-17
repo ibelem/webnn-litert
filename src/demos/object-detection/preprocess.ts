@@ -5,7 +5,7 @@ import {setLastFrame} from './frame-cache';
 import {isYolo26LiveExtra} from './render';
 
 /**
- * Preprocess image for YOLOv2.6 detection.
+ * Preprocess image for YOLO26n detection.
  * 
  * Based on the reference implementation in YoloDetect-main/src/utils/detect.js:
  * - Resize to model input dimensions
