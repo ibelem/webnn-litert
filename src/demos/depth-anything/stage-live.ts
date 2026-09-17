@@ -5,14 +5,14 @@
  */
 import {findDemo} from '../../registry';
 import {LiveStage} from '../../runner/live-stage';
-import Yolo26LiveWorker from './worker-entry-live.ts?worker';
+import DepthAnythingLiveWorker from './worker-entry-live.ts?worker';
 
-const found = findDemo('object-detection');
-if (!found) throw new Error('registry missing object-detection entry');
+const found = findDemo('depth-anything');
+if (!found) throw new Error('registry missing depth-anything entry');
 const DEMO = found;
 
-export class ObjectDetectionLiveStage extends LiveStage {
+export class DepthAnythingLiveStage extends LiveStage {
   constructor(canvas: HTMLCanvasElement) {
-    super(canvas, new Yolo26LiveWorker(), DEMO.model.url);
+    super(canvas, new DepthAnythingLiveWorker(), DEMO.model.url);
   }
 }

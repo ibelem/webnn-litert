@@ -20,15 +20,16 @@
   <div class="demo-header">
     <h1>Selfie Multiclass Segmentation</h1>
     <p class="demo-lede">
-      One webcam snapshot, segmented into hair / body skin / face skin / clothes /
-      accessories. A single frame, not a live feed — the camera is released the instant
-      the snapshot is taken.
+      Hair / body skin / face skin / clothes / accessories, segmented. Compare backends
+      on a single webcam snapshot, or run one backend continuously over a video file or
+      live camera.
     </p>
   </div>
 
   <div class="demo-layout">
     <aside class="demo-sidebar">
       <div class="demo-controls">
+        <div id="image-controls">
         <div class="demo-controls-group" role="group" aria-label="Backend">
           <div class="demo-controls-group__title" title="Compare — measured one at a time, never concurrently">Backend</div>
           <label><input type="checkbox" name="backend" value="webgpu"> WebGPU</label>
@@ -50,21 +51,74 @@
             </div>
           </div>
         </div>
+        </div>
+
+        <div id="live-controls" hidden>
+          <div class="demo-controls-group" role="group" aria-label="Backend">
+            <div class="demo-controls-group__title" title="Only one backend can be live at a time">Backend</div>
+            <label><input type="radio" name="live-backend" value="webgpu"> WebGPU</label>
+            <label><input type="radio" name="live-backend" value="webnn-gpu"> WebNN GPU</label>
+            <label><input type="radio" name="live-backend" value="webnn-npu"> WebNN NPU</label>
+            <label><input type="radio" name="live-backend" value="webnn-cpu"> WebNN CPU</label>
+            <label><input type="radio" name="live-backend" value="wasm"> Wasm (CPU baseline)</label>
+          </div>
+        </div>
+
         <div class="demo-controls-group" role="group" aria-label="LiteRT.js Version">
           <div class="demo-controls-group__title">LiteRT.js Version</div>
           <select id="litert-version" class="litert-version-select">
             <option value="">Loading versions...</option>
           </select>
         </div>
-        <div class="sample-image">
-          <img id="snapshot-preview" alt="Captured snapshot" hidden>
+        <div class="demo-controls-group" role="group" aria-label="Input Source">
+          <div class="demo-controls-group__title">Input</div>
+          <label><input type="radio" name="input-mode" value="image" checked> Snapshot</label>
+          <label><input type="radio" name="input-mode" value="video"> Video file</label>
+          <label><input type="radio" name="input-mode" value="camera"> Camera</label>
         </div>
-        <button class="run" id="capture">Take Snapshot &amp; Run</button>
+
+        <div id="image-mode-panel">
+          <div class="sample-image">
+            <img id="snapshot-preview" alt="Captured snapshot" hidden>
+          </div>
+          <button class="run" id="capture">Take Snapshot &amp; Run</button>
+        </div>
+
+        <div class="live-mode-panel" id="live-mode-panel" hidden>
+          <div class="video-source-controls" id="video-source-controls" hidden>
+            <div class="image-upload">
+              <input type="file" class="image-upload__input" id="video-upload" accept="video/*">
+              <label for="video-upload" class="image-upload__button">
+                Choose Video
+              </label>
+            </div>
+          </div>
+          <video id="source-video" muted loop playsinline hidden></video>
+          <button class="run" id="live-toggle">Start Camera</button>
+        </div>
       </div>
     </aside>
 
     <div class="demo-content">
       <div class="compare-grid" id="compare-grid"></div>
+
+      <div class="compare-grid" id="live-grid" hidden>
+        <div class="compare-card">
+          <div class="compare-card__header">
+            <div class="compare-card__label" id="live-label"></div>
+          </div>
+          <div class="compare-card__stage">
+            <canvas id="live-canvas" width="640" height="480"></canvas>
+          </div>
+          <div class="receipt-badge" id="live-receipt"></div>
+          <div class="compare-card__metrics">
+            <div id="live-metric-load"></div>
+            <div id="live-metric-inference"></div>
+            <div id="live-metric-fps"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="log-status" id="log-status"></div>
     </div>
   </div>

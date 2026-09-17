@@ -1,6 +1,6 @@
 /**
  * Argmax over the channel axis per pixel, colorized with a palette — shared
- * between efficientvit-seg's opaque render and efficientvit-live's blended
+ * between efficientvit-seg's opaque render and the live path's blended
  * render. Ported from the reference's `colorsTensor.gather(segmentationClasses)`.
  */
 export function colorizeSegmentationMask(

@@ -45,7 +45,6 @@ export default defineConfig({
         mobilenetv2: 'mobilenetv2.html',
         'efficientvit-seg': 'efficientvit-seg.html',
         'real-esrgan': 'real-esrgan.html',
-        'efficientvit-live': 'efficientvit-live.html',
         'object-detection': 'object-detection.html',
       },
     },

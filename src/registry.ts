@@ -103,19 +103,6 @@ export const DEMOS: readonly DemoEntry[] = [
     maxCompareInput: {width: 256, height: 256},
   },
   {
-    slug: 'efficientvit-live',
-    title: 'Real-Time Segmentation Using EfficientViT',
-    blurb: 'Continuous webcam segmentation, live — pick one backend at a time.',
-    // SAME model as efficientvit-seg — reuse the HF-mirrored URL, never the
-    // reference demo's Google GCS bucket URL.
-    model: {
-      url: 'https://huggingface.co/webnn/efficientvit-seg-l2-ade20k-r512x512/resolve/main/tflite/model.tflite',
-    },
-    backends: BACKENDS,
-    implemented: true,
-    thumbnail: '/images/home/efficientvit-live.jpg',
-  },
-  {
     slug: 'object-detection',
     title: 'YOLO26n Object Detection',
     blurb: 'Real-time object detection with bounding boxes',

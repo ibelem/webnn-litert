@@ -31,7 +31,11 @@ export function preprocessDepthAnything(
   }
 
   const canvas = new OffscreenCanvas(width, height);
-  const ctx = canvas.getContext('2d');
+  // willReadFrequently: in live mode the getImageData() below is a GPU->CPU
+  // readback on every frame. Without this hint Chrome keeps the canvas
+  // GPU-backed and stalls the pipeline per frame (it logs the "faster with
+  // the willReadFrequently attribute" warning saying so).
+  const ctx = canvas.getContext('2d', {willReadFrequently: true});
   if (!ctx) throw new Error('OffscreenCanvas 2D context unavailable for preprocessing');
   ctx.drawImage(image, 0, 0, width, height);
   const {data: rgba} = ctx.getImageData(0, 0, width, height);

@@ -17,6 +17,7 @@ import {setupLiteRtVersionDropdown} from '../../ui/litert-version';
 import {getInitialInferenceCount, setupInferenceCount} from '../../ui/inference-count';
 import {getCurrentImageSize} from '../../ui/image-upload';
 import {Yolo26Stage} from './stage';
+import {acquireCameraTrack, acquireVideoFileTrack} from '../../runner/live-stage';
 import {ObjectDetectionLiveStage} from './stage-live';
 
 function el<T extends HTMLElement>(id: string): T {
@@ -150,37 +151,14 @@ videoUpload.addEventListener('change', () => {
   liveToggleButton.disabled = false;
 });
 
-/** A camera track from getUserMedia, or one taken from the uploaded video's
- *  own playback via captureStream() — the live stage treats both
- *  identically (see ObjectDetectionLiveStage's doc comment). Handed to the
- *  stage as a CALLBACK, not called here: the stage defers it until the model
- *  is compiled, so the camera does not sit open through the ~2s WebNN build.
- *  The video is muted, so play() needs no transient activation and is safe
- *  to call this late. */
-async function acquireTrack(mode: InputMode): Promise<MediaStreamTrack> {
-  if (mode === 'camera') {
-    const stream = await navigator.mediaDevices.getUserMedia({video: {width: 640, height: 480}});
-    const [track] = stream.getVideoTracks();
-    if (!track) {
-      for (const t of stream.getTracks()) t.stop();
-      throw new Error('getUserMedia returned no video track');
-    }
-    return track;
-  }
-
-  if (!videoFileUrl) throw new Error('choose a video file first');
-  await sourceVideo.play();
-  const stream = sourceVideo.captureStream();
-  const [track] = stream.getVideoTracks();
-  if (!track) throw new Error('video file has no video track');
-  // Hand over a CLONE, never the element's own track. The stage owns
-  // stopping whatever it is given, and a stopped track is dead forever —
-  // but captureStream() on a media element may hand back the same cached
-  // stream on every call, so stopping the original would make the second
-  // Start silently produce no frames (compile succeeds, 'ready' fires,
-  // the reader sees done immediately, canvas stays blank). Stopping a
-  // clone leaves the element's track live for the next Start.
-  return track.clone();
+/** Camera, or the uploaded video's own playback — LiveStage treats both
+ *  identically. Passed as a CALLBACK, not called here: the stage defers it
+ *  until the model is compiled, so the source does not run through the ~2s
+ *  WebNN build. See runner/live-stage.ts. */
+function acquireTrack(mode: InputMode): Promise<MediaStreamTrack> {
+  if (mode === 'camera') return acquireCameraTrack();
+  if (!videoFileUrl) return Promise.reject(new Error('choose a video file first'));
+  return acquireVideoFileTrack(sourceVideo);
 }
 
 async function startLive(): Promise<void> {

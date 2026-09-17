@@ -5,13 +5,21 @@
  * to every card's stage via `stage.setFrame()` before running, which the
  * shared factory has no hook for. See compare-controller.ts's own doc
  * comment for why that hook wasn't added preemptively for one caller.
+ *
+ * Also hosts a LIVE mode (video file / continuous camera) alongside that
+ * snapshot grid, same as object-detection and depth-anything. The two modes
+ * must never run at once — they share one log panel, and the site's
+ * "measure serially" rule forbids two loops regardless. runAll() is gated
+ * on the mode below; switching mode stops whatever is running.
  */
 import {DEFAULT_LITERT_VERSION} from '../../runner/loader';
 import {BACKENDS, isBackend, type Backend} from '../../runner/types';
 import {renderMetricRow} from '../../ui/metric-row';
 import {renderReceiptBadge} from '../../ui/receipt-badge';
 import {createLogger} from '../../ui/log-status';
+import {acquireCameraTrack, acquireVideoFileTrack} from '../../runner/live-stage';
 import {captureOneFrame, SelfieMulticlassStage} from './stage';
+import {SelfieMulticlassLiveStage} from './stage-live';
 import {setupLiteRtVersionDropdown} from '../../ui/litert-version';
 import {getInitialInferenceCount, setupInferenceCount} from '../../ui/inference-count';
 import {fitCanvasSize} from '../../ui/canvas-size';
@@ -22,6 +30,17 @@ function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
   if (!node) throw new Error(`#${id} missing from selfie-multiclass.html`);
   return node as T;
+}
+
+type InputMode = 'image' | 'video' | 'camera';
+
+const inputModeRadios =
+    [...document.querySelectorAll<HTMLInputElement>('input[name="input-mode"]')];
+
+/** 'image' is the SNAPSHOT compare grid — the page's original mode. */
+function currentInputMode(): InputMode {
+  const checked = inputModeRadios.find((r) => r.checked);
+  return (checked?.value as InputMode | undefined) ?? 'image';
 }
 
 const gridEl = el<HTMLDivElement>('compare-grid');
@@ -197,6 +216,7 @@ function reconcileCards(): void {
 
 
 async function runAll(): Promise<void> {
+  if (currentInputMode() !== 'image') return; // live mode owns the page right now
   if (!lastFrame) return; // nothing captured yet — checkbox changes just reconcile UI
 
   const myGeneration = ++generation;
@@ -310,10 +330,180 @@ setupInferenceCount();
 // Reconcile cards on load in case a `?backend=` URL param pre-checked boxes;
 // otherwise the grid stays empty and shows its "select a backend" placeholder.
 reconcileCards();
-logger.log('select a backend, then click "Take Snapshot & Run" — requires camera permission');
+
+// ---- Live mode: single backend, continuous — camera or uploaded video ----
+
+const liveCanvas = el<HTMLCanvasElement>('live-canvas');
+const liveLabelEl = el<HTMLDivElement>('live-label');
+const liveReceiptEl = el<HTMLDivElement>('live-receipt');
+const liveMetricLoadEl = el<HTMLDivElement>('live-metric-load');
+const liveMetricInferenceEl = el<HTMLDivElement>('live-metric-inference');
+const liveMetricFpsEl = el<HTMLDivElement>('live-metric-fps');
+const liveToggleButton = el<HTMLButtonElement>('live-toggle');
+const sourceVideo = el<HTMLVideoElement>('source-video');
+const videoUpload = el<HTMLInputElement>('video-upload');
+const videoSourceControls = el<HTMLDivElement>('video-source-controls');
+const liveBackendRadios =
+    [...document.querySelectorAll<HTMLInputElement>('input[name="live-backend"]')];
+const imageControls = el<HTMLDivElement>('image-controls');
+const liveControls = el<HTMLDivElement>('live-controls');
+const imageModePanel = el<HTMLDivElement>('image-mode-panel');
+const liveModePanel = el<HTMLDivElement>('live-mode-panel');
+const liveGrid = el<HTMLDivElement>('live-grid');
+
+// `?backend=` is comma-separated for the snapshot grid, but live mode runs
+// exactly one backend — take the first valid entry so arriving with a backend
+// in the URL and switching to Video/Camera doesn't land on "select a backend
+// first" with nothing preselected.
+const urlLiveBackend = urlBackends?.[0];
+if (urlLiveBackend) {
+  for (const radio of liveBackendRadios) radio.checked = radio.value === urlLiveBackend;
+}
+
+const liveStage = new SelfieMulticlassLiveStage(liveCanvas);
+let live = false;
+let videoFileUrl: string | null = null;
+
+function selectedLiveBackend(): Backend | null {
+  const checked = liveBackendRadios.find((r) => r.checked);
+  return checked && isBackend(checked.value) ? checked.value : null;
+}
+
+function setLiveControlsDisabled(disabled: boolean): void {
+  for (const radio of liveBackendRadios) radio.disabled = disabled;
+  videoUpload.disabled = disabled;
+}
+
+/** Switches the visible panel/grid for the chosen input mode. Stops any
+ *  running live session first — a mode switch mid-run has nowhere sensible to
+ *  continue, and the site's "measured serially" rule already forbids two
+ *  loops at once, so the simplest correct answer is: stop it. */
+function applyInputMode(mode: InputMode): void {
+  if (live) void stopLive();
+
+  const isImage = mode === 'image';
+  imageControls.hidden = !isImage;
+  imageModePanel.hidden = !isImage;
+  gridEl.hidden = !isImage;
+
+  liveControls.hidden = isImage;
+  liveModePanel.hidden = isImage;
+  liveGrid.hidden = isImage;
+
+  videoSourceControls.hidden = mode !== 'video';
+  liveToggleButton.textContent = mode === 'camera' ? 'Start Camera' : 'Start Segmentation';
+  liveToggleButton.disabled = mode === 'video' && !videoFileUrl;
+
+  logger.log(isImage ?
+      'select a backend, then click "Take Snapshot & Run" — requires camera permission' :
+      'pick a backend, then start — the model downloads and compiles before the camera opens');
+}
+
+for (const radio of inputModeRadios) {
+  radio.addEventListener('change', () => applyInputMode(currentInputMode()));
+}
+
+videoUpload.addEventListener('change', () => {
+  const file = videoUpload.files?.[0];
+  if (!file) return;
+  if (videoFileUrl) URL.revokeObjectURL(videoFileUrl);
+  videoFileUrl = URL.createObjectURL(file);
+  sourceVideo.src = videoFileUrl;
+  liveToggleButton.disabled = false;
+});
+
+/** Camera, or the uploaded video's own playback — LiveStage treats both
+ *  identically. Passed as a CALLBACK, not called here: the stage defers it
+ *  until the model is compiled, so the source does not run through the ~2s
+ *  WebNN build. See runner/live-stage.ts. */
+function acquireTrack(mode: InputMode): Promise<MediaStreamTrack> {
+  if (mode === 'camera') return acquireCameraTrack();
+  if (!videoFileUrl) return Promise.reject(new Error('choose a video file first'));
+  return acquireVideoFileTrack(sourceVideo);
+}
+
+async function startLive(): Promise<void> {
+  const mode = currentInputMode();
+  if (mode === 'image') return;
+
+  const backend = selectedLiveBackend();
+  if (!backend) {
+    logger.log('select a backend first');
+    return;
+  }
+
+  liveLabelEl.textContent = backend;
+  liveToggleButton.disabled = true;
+  setLiveControlsDisabled(true);
+
+  try {
+    await liveStage.start(() => acquireTrack(mode), backend, currentLitertVersion, {
+      onReady: (receipt) => {
+        renderReceiptBadge(liveReceiptEl, receipt.delegation, receipt.warnings);
+        const isFull = receipt.delegation === 'full';
+        renderMetricRow(liveMetricLoadEl, 'Load + compile', receipt.loadAndCompileMs, !isFull);
+        renderMetricRow(liveMetricInferenceEl, 'Inference (live)', null, !isFull);
+        renderMetricRow(liveMetricFpsEl, 'Frame rate', null, !isFull, 'fps');
+      },
+      onStats: (inferenceMs, fps) => {
+        const isFull = liveReceiptEl.classList.contains('receipt-badge--full');
+        renderMetricRow(liveMetricInferenceEl, 'Inference (live)', inferenceMs, !isFull);
+        renderMetricRow(liveMetricFpsEl, 'Frame rate', fps, !isFull, 'fps');
+      },
+      onLog: (message) => logger.log(message),
+      onError: (message) => {
+        renderReceiptBadge(liveReceiptEl, 'failed', [], message);
+        logger.log(`${backend}: ${message}`);
+        void stopLive();
+      },
+    }, (message) => logger.log(message));
+
+    live = true;
+    liveToggleButton.textContent = 'Stop';
+    liveToggleButton.disabled = false;
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    renderReceiptBadge(liveReceiptEl, 'failed', [], message);
+    logger.log(`${backend}: ${message}`);
+    setLiveControlsDisabled(false);
+    liveToggleButton.disabled = false;
+  }
+}
+
+async function stopLive(): Promise<void> {
+  liveToggleButton.disabled = true;
+  await liveStage.stop();
+  sourceVideo.pause();
+  live = false;
+  liveToggleButton.textContent =
+      currentInputMode() === 'camera' ? 'Start Camera' : 'Start Segmentation';
+  liveToggleButton.disabled = currentInputMode() === 'video' && !videoFileUrl;
+  setLiveControlsDisabled(false);
+}
+
+liveToggleButton.addEventListener('click', () => {
+  void (live ? stopLive() : startLive());
+});
+
+for (const radio of liveBackendRadios) {
+  radio.addEventListener('change', () => {
+    if (live) void stopLive();
+  });
+}
+
+// A version change mid-session needs a fresh compile. The snapshot grid's own
+// listener only updates its variable (it waits for the next Capture), so this
+// one only has to handle the live side.
+document.addEventListener('litertVersionChanged', () => {
+  if (live) void stopLive();
+});
+
+applyInputMode(currentInputMode());
 
 window.addEventListener('beforeunload', () => {
   for (const backend of [...cards.keys()]) destroyCard(backend);
   lastFrame?.close();
+  liveStage.dispose();
   if (previewUrl) URL.revokeObjectURL(previewUrl);
+  if (videoFileUrl) URL.revokeObjectURL(videoFileUrl);
 });

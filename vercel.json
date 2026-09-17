@@ -3,6 +3,13 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/efficientvit-live",
+      "destination": "/efficientvit-seg",
+      "permanent": true
+    }
+  ],
   "trailingSlash": false,
   "headers": [
     {
