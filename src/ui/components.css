@@ -199,7 +199,7 @@
 /* Demo layout with sidebar */
 .demo-layout {
   display: grid;
-  grid-template-columns: 16rem 1fr;
+  grid-template-columns: var(--sidebar-width) 1fr;
   gap: var(--space-4);
   align-items: start;
 }
@@ -213,6 +213,53 @@
 /* Main content area */
 .demo-content {
   min-width: 0;
+}
+
+/*
+ * Live mode (video / camera) only. The compare grid holds N cards that share
+ * the width, but live mode has exactly ONE card, so it stretches across the
+ * whole content column while the canvas inside stays at its own intrinsic
+ * size — leaving a wide empty gutter to its right. Putting the run
+ * transcript in that gutter uses the space and narrows the stage column to
+ * something nearer the canvas's real width.
+ *
+ * Applied by toggling this class in each live page's applyInputMode(), not
+ * by styling #live-grid directly, because the log is a SIBLING of the grid
+ * and only its parent can place the two side by side.
+ */
+.demo-content--live {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--log-sidebar-width);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+/* The hidden compare grid is display:none and takes no grid slot, so the two
+   columns are the live grid and the log. */
+.demo-content--live .log-status {
+  margin-top: 0;
+  /* Fills the row the live card defines, instead of the fixed 10rem it gets
+     under the compare grid — a live session's transcript runs for as long as
+     the camera does, so the extra height is worth having. */
+  align-self: stretch;
+  max-height: none;
+}
+
+/* Wider breakpoint than .demo-layout's 48rem on purpose: this column is
+   already inset by the left sidebar, so a second column alongside it stops
+   being viable well before the left one does. The fixed chrome comes to
+   ~44rem (wrap padding + both sidebars + two gaps), so below ~72rem the
+   stage column gets too narrow to be worth the split. */
+@media (max-width: 72rem) {
+  .demo-content--live {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .demo-content--live .log-status {
+    margin-top: var(--space-4);
+    align-self: auto;
+    max-height: 10rem;
+  }
 }
 
 .demo-sidebar .sample-image {
@@ -484,7 +531,10 @@
   border-radius: var(--radius);
   padding: 0;
   display: flex;
-  justify-content: space-between;
+  /* `center`, not `space-between`: every stage holds exactly ONE child, and
+     space-between with one item resolves to flex-start — which pinned each
+     canvas to the left edge of a card usually wider than it. */
+  justify-content: center;
 }
 
 .compare-card__stage canvas {

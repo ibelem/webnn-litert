@@ -351,6 +351,10 @@ const liveControls = el<HTMLDivElement>('live-controls');
 const imageModePanel = el<HTMLDivElement>('image-mode-panel');
 const liveModePanel = el<HTMLDivElement>('live-mode-panel');
 const liveGrid = el<HTMLDivElement>('live-grid');
+/** Layout wrapper, not a control — queried by class because it carries no
+ *  id on any page. Null-guarded so a page that ever drops it degrades to
+ *  the stacked layout rather than throwing on load. */
+const demoContent = document.querySelector<HTMLElement>('.demo-content');
 
 // `?backend=` is comma-separated for the snapshot grid, but live mode runs
 // exactly one backend — take the first valid entry so arriving with a backend
@@ -395,6 +399,9 @@ function applyInputMode(mode: InputMode): void {
   liveControls.hidden = isImage;
   liveModePanel.hidden = isImage;
   liveGrid.hidden = isImage;
+  // Moves the run transcript into the empty gutter beside the single live
+  // card — see .demo-content--live in components.css.
+  demoContent?.classList.toggle('demo-content--live', !isImage);
 
   videoSourceControls.hidden = mode !== 'video';
   liveToggleButton.textContent = mode === 'camera' ? 'Start Camera' : 'Start Segmentation';

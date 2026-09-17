@@ -95,6 +95,10 @@ const imageModePanel = el<HTMLDivElement>('image-mode-panel');
 const liveModePanel = el<HTMLDivElement>('live-mode-panel');
 const compareGrid = el<HTMLDivElement>('compare-grid');
 const liveGrid = el<HTMLDivElement>('live-grid');
+/** Layout wrapper, not a control — queried by class because it carries no
+ *  id on any page. Null-guarded so a page that ever drops it degrades to
+ *  the stacked layout rather than throwing on load. */
+const demoContent = document.querySelector<HTMLElement>('.demo-content');
 
 if (urlLiveBackend) {
   for (const radio of liveBackendRadios) radio.checked = radio.value === urlLiveBackend;
@@ -141,6 +145,9 @@ function applyInputMode(mode: InputMode): void {
   liveControls.hidden = isImage;
   liveModePanel.hidden = isImage;
   liveGrid.hidden = isImage;
+  // Moves the run transcript into the empty gutter beside the single live
+  // card — see .demo-content--live in components.css.
+  demoContent?.classList.toggle('demo-content--live', !isImage);
 
   videoSourceControls.hidden = mode !== 'video';
   liveToggleButton.textContent = mode === 'camera' ? 'Start Camera' : 'Start Detection';

@@ -161,6 +161,19 @@
   --space-7: 3rem;
   --space-8: 4rem;
 
+  /* Demo sidebar width. Used by BOTH the left controls sidebar and, in live
+     value lives here rather than being written into each rule and drifting. */
+  --sidebar-width: 16rem;
+
+  /* Live mode's right-hand log column. Wider than the left sidebar on
+     purpose: the left holds short control labels, this holds monospace
+     transcript lines. At --text-xs (12px) a mono glyph advances ~7.2px, so
+     24rem minus the panel's 2rem of padding fits ~48 characters — enough for
+     the load/compile lines unwrapped. The periodic heartbeat may wrap its
+     tail and the end-of-session summary always will; both are `pre-wrap`, so
+     they wrap rather than clip. */
+  --log-sidebar-width: 24rem;
+
   /* Sidebar control height. Pins .run and .image-upload__button to the same
      box so they line up when stacked — see components.css. Comfortably clears
      their content box (13px text x 1.55 leading + 2x --space-2 + hairline
