@@ -17,6 +17,24 @@ export interface StartCallbacks {
   onError: (message: string) => void;
 }
 
+export interface LiveStageOptions {
+  /**
+   * Model bytes to compile INSTEAD of downloading `modelUrl` — a visitor's
+   * local `.tflite` (ui/model-upload.ts). Return null to use the registry
+   * URL. Consulted on every start(), so an upload between two sessions
+   * takes effect without recreating the stage (which is impossible anyway:
+   * the canvas has already been transferred, see CLAUDE.md's
+   * element-identity rule).
+   *
+   * A CALLBACK rather than bytes so runner/ stays free of any DOM coupling —
+   * the demo layer supplies ui/model-upload.ts's getLocalModel.
+   *
+   * `tag` must change whenever the bytes do; it is this class's cache key.
+   * `name` is for the run transcript only.
+   */
+  resolveLocalModel?: () => {bytes: ArrayBuffer; tag: string; name: string} | null;
+}
+
 /**
  * Main-thread half of a continuous demo (camera / uploaded video), shared by
  * every live demo. The worker half is runner/live.worker.ts.
@@ -31,7 +49,13 @@ export interface StartCallbacks {
 export class LiveStage {
   private readonly worker: Worker;
   private readonly modelUrl: string;
+  private readonly resolveLocalModel: LiveStageOptions['resolveLocalModel'];
   private modelBytesCache: ArrayBuffer | null = null;
+  /** Which source `modelBytesCache` came from — the registry URL, or a
+   *  particular upload's tag. A plain non-null cache was enough until local
+   *  models existed; now the cache has to be invalidated when the visitor
+   *  picks a different file. */
+  private modelCacheTag: string | null = null;
   private track: MediaStreamTrack | null = null;
   private sessionListener: ((event: MessageEvent<LiveWorkerToMainMessage>) => void) | null = null;
   private resolveReady: (() => void) | null = null;
@@ -41,20 +65,37 @@ export class LiveStage {
    * `worker` is constructed by the caller because Vite's `?worker` import has
    * to be a static, per-demo specifier — it cannot be parameterized here.
    */
-  constructor(canvas: HTMLCanvasElement, worker: Worker, modelUrl: string) {
+  constructor(
+      canvas: HTMLCanvasElement, worker: Worker, modelUrl: string,
+      options: LiveStageOptions = {}) {
     const offscreen = canvas.transferControlToOffscreen();
     this.worker = worker;
     this.modelUrl = modelUrl;
+    this.resolveLocalModel = options.resolveLocalModel;
     const init: MainToLiveWorkerMessage = {type: 'init', canvas: offscreen};
     this.worker.postMessage(init, [offscreen]);
   }
 
   private async loadModelBytes(
       onProgress?: (m: string) => void, onLog?: (m: string) => void): Promise<ArrayBuffer> {
-    if (this.modelBytesCache) return this.modelBytesCache;
+    const local = this.resolveLocalModel?.() ?? null;
+    const tag = local ? local.tag : this.modelUrl;
+    if (this.modelBytesCache && this.modelCacheTag === tag) return this.modelBytesCache;
+
+    if (local) {
+      onLog?.(`model: ${local.name} (local file)`);
+      // Held by reference, not copied. start() slices before transferring,
+      // so the uploader's buffer is never detached out from under a second
+      // run on another backend.
+      this.modelBytesCache = local.bytes;
+      this.modelCacheTag = tag;
+      return this.modelBytesCache;
+    }
+
     const {bytes} = await loadModelBytesCached(
         this.modelUrl, onLog, (p) => onProgress?.(`fetching model… ${formatProgress(p)}`));
     this.modelBytesCache = bytes;
+    this.modelCacheTag = tag;
     return this.modelBytesCache;
   }
 
