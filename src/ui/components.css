@@ -284,13 +284,41 @@
   margin-top: var(--space-4);
 }
 
-/* Live mode: video-file / camera source panel, sibling of .sample-image */
+/*
+ * Live mode: video-file / camera source panel, sibling of .sample-image.
+ *
+ * ONE rhythm for the whole stacked control column — on object-detection that
+ * is Upload Model / Choose Video / Start Detection / Fullscreen, and the four
+ * of them must read as one stack. Per-item margins had drifted to three
+ * different gaps there (2rem, then 1rem, then 0.75rem) because each control
+ * brought its own: .image-upload a padding-top, .run a margin-top,
+ * .video-source-controls a margin-bottom that then collapsed with it.
+ *
+ * `gap` rather than margins for a second reason: a display:none flex child
+ * contributes NO gap, and both .video-source-controls (camera mode) and the
+ * <video> element are always hidden in one mode or the other. Margins would
+ * have left a phantom space where the hidden control used to be.
+ *
+ * margin-top matches the gap so the first button here sits the same distance
+ * below whatever panel precedes it as the buttons sit from each other.
+ */
 .live-mode-panel {
-  margin-top: var(--space-4);
+  margin-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
-.video-source-controls {
-  margin-bottom: var(--space-4);
+/* Spacing inside this column is the column's job. Both of these carry their
+   own for the stacked-block layouts elsewhere on the page (the sample-image
+   panel, the other demos' single .run button), so they are zeroed here
+   rather than removed. */
+.live-mode-panel .image-upload {
+  padding-top: 0;
+}
+
+.live-mode-panel .run {
+  margin-top: 0;
 }
 
 .demo-sidebar .sample-image img {
@@ -312,6 +340,26 @@
 /* Image upload section */
 .image-upload {
   padding-top: var(--space-4);
+}
+
+/* Local .tflite override (ui/model-upload.ts). A sibling of the per-mode
+   panels rather than part of one, because the model applies to all of them.
+   The control block above it already ends in a --space-4 margin, so
+   .image-upload's own padding-top would stack a second gap here. */
+.model-source .image-upload {
+  padding-top: 0;
+}
+
+/* Caption ABOVE the Upload Model button — tighter than the --space-3 between
+   stacked controls, because a label binds to its own control. */
+.model-source__name {
+  margin-bottom: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--color-fg-muted);
+  /* A model filename is one long unbreakable token; without this it widens
+     the whole fixed-width sidebar column. */
+  overflow-wrap: anywhere;
 }
 
 .image-upload__label {
@@ -557,6 +605,115 @@
   max-width: 100%;
   height: auto;
   border-radius: var(--radius-sm);
+}
+
+/*
+ * Fullscreen presentation of the live card (object-detection's Video / Camera
+ * modes, triggered by #live-fullscreen; Escape leaves it, handled by the
+ * browser).
+ *
+ * The CARD is what goes fullscreen rather than the bare canvas, but only so
+ * that the FPS readout has something to be positioned against — everything
+ * else the card holds is hidden below. Fullscreen is the video.
+ *
+ * No `background` on purpose. The UA stylesheet gives a fullscreen element a
+ * black ::backdrop and no background of its own, so leaving this transparent
+ * is what puts the video in BLACK letterbox bars — conventional for video,
+ * and the page background token would be plain wrong here now that no page
+ * chrome is on screen to sit on it.
+ */
+.compare-card:fullscreen {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+/* The video gets the ENTIRE screen: the stage is taken out of flow and
+   pinned to all four edges, leaving the FPS readout to position itself
+   against the card behind it. */
+.compare-card:fullscreen .compare-card__stage {
+  position: absolute;
+  inset: 0;
+}
+
+/*
+ * `width/height: 100%` and NOT `auto` with a max — that was the bug this
+ * replaced. A canvas is a replaced element, so `width: auto` resolves to its
+ * INTRINSIC size (the element's width/height attributes, 640x480 for the live
+ * stage) and `max-width: 100%` can only ever shrink that. On any screen
+ * bigger than the canvas the two constraints did nothing at all and the video
+ * sat at 640x480 in the middle of a fullscreen void.
+ *
+ * Filling the box and letting `object-fit` letterbox inside it is what
+ * actually scales UP. `contain` rather than `cover` because the whole frame
+ * has to stay visible — cropping a detection out of the picture would make
+ * the demo lie about what the model found.
+ *
+ * All of this is CSS-side: the canvas is owned by the worker via
+ * OffscreenCanvas and its backing store cannot be resized from here (see
+ * CLAUDE.md), so its pixels are always 640x480 regardless.
+ */
+.compare-card:fullscreen .compare-card__stage canvas {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+  border-radius: 0;
+}
+
+/*
+ * Receipt + metric rows in one wrapper. Outside fullscreen this only
+ * re-supplies the gap the card used to provide between them directly, so the
+ * sidebar view is unchanged; its job is to give fullscreen a single element
+ * to hide, so that nothing is ever set on .receipt-badge's or
+ * .metric-row's own box — those two take no overrides (CLAUDE.md).
+ */
+.compare-card__chrome {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Fullscreen shows the VIDEO and nothing else. The backend label, the
+   receipt badge and both latency rows all belong to the windowed view; the
+   only thing that survives is the FPS readout below. */
+.compare-card:fullscreen .compare-card__header,
+.compare-card:fullscreen .compare-card__chrome {
+  display: none;
+}
+
+/*
+ * Inference time and frame rate drawn straight onto the video, bottom-right,
+ * one per line. Exists ONLY in fullscreen — in the windowed view both figures
+ * are already proper metric rows, so a second copy would be two sources of
+ * truth for the same two numbers.
+ *
+ * `z-index` is load-bearing rather than decorative: the stage above is
+ * positioned and this would otherwise be painted over by it.
+ *
+ * No scrim, no panel, no background — a deliberate call by the project owner
+ * (see the delegation note in demos/object-detection/main.ts). Over a bright
+ * frame white-at-80% is the first thing that will be hard to read.
+ */
+.stage-overlay {
+  display: none;
+}
+
+.compare-card:fullscreen .stage-overlay {
+  display: block;
+  position: absolute;
+  /* --space-7 is exactly 3x --space-4; inset far enough that the readout
+     clears the rounded corners and overscan of a real fullscreen display. */
+  right: var(--space-7);
+  bottom: var(--space-7);
+  z-index: 1;
+  /* The two lines are different widths, so they need aligning to the edge
+     they are pinned to or the stack looks accidental. */
+  text-align: right;
+  font-size: var(--stage-overlay-size);
+  line-height: var(--leading-tight);
+  color: var(--stage-overlay-fg);
 }
 
 /* mobilenetv2's DOM-rendered stage — a flex item with no intrinsic width

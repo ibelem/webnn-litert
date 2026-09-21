@@ -123,6 +123,23 @@
 
         </div>
 
+        <!-- Applies to every input mode, so it sits OUTSIDE the per-mode
+             panels below and stays visible in all three. -->
+        <div class="model-source" id="model-source-panel">
+          <!-- ABOVE the button, not below it: this reads as that button's
+               label, and anything between two stacked buttons breaks the one
+               spacing rhythm the sidebar's control column has. -->
+          <div class="model-source__name" id="model-upload-name">
+            default: webnn/yolo26n
+          </div>
+          <div class="image-upload">
+            <input type="file" class="image-upload__input" id="model-upload" accept=".tflite">
+            <label for="model-upload" class="image-upload__button">
+              Upload Model
+            </label>
+          </div>
+        </div>
+
         <div class="sample-image" id="image-mode-panel">
           <img src="images/sample-dog.jpg" alt="Sample image" id="demo-image" />
           <div id="image-attribution">
@@ -148,6 +165,9 @@
           </div>
           <video id="source-video" muted loop playsinline hidden></video>
           <button class="run" id="live-toggle">Start Camera</button>
+          <!-- Revealed by main.ts once a live session is actually drawing —
+               there is no output to enlarge before that. -->
+          <button class="run" id="live-fullscreen" hidden>Fullscreen</button>
         </div>
       </aside>
 
@@ -155,18 +175,31 @@
         <div class="compare-grid" id="compare-grid"></div>
 
         <div class="compare-grid" id="live-grid" hidden>
-          <div class="compare-card">
+          <div class="compare-card" id="live-card">
             <div class="compare-card__header">
               <div class="compare-card__label" id="live-label"></div>
             </div>
             <div class="compare-card__stage">
               <canvas id="live-canvas" width="640" height="480"></canvas>
             </div>
-            <div class="receipt-badge" id="live-receipt"></div>
-            <div class="compare-card__metrics">
-              <div id="live-metric-load"></div>
-              <div id="live-metric-inference"></div>
-              <div id="live-metric-fps"></div>
+            <!-- Receipt + metrics share ONE wrapper so fullscreen has a
+                 single element to hide. Hiding this container is what keeps
+                 receipt-badge and metric-row free of the style overrides
+                 they are locked against. -->
+            <div class="compare-card__chrome">
+              <div class="receipt-badge" id="live-receipt"></div>
+              <div class="compare-card__metrics">
+                <div id="live-metric-load"></div>
+                <div id="live-metric-inference"></div>
+                <div id="live-metric-fps"></div>
+              </div>
+            </div>
+            <!-- Visible only in fullscreen, where it is the ONLY thing drawn
+                 over the video. Its own element rather than restyled metric
+                 rows, so the locked components stay untouched. -->
+            <div class="stage-overlay" id="live-stage-overlay">
+              <div class="num" id="live-stage-inference"></div>
+              <div class="num" id="live-stage-fps"></div>
             </div>
           </div>
         </div>

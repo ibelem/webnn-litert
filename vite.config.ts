@@ -14,15 +14,40 @@ export default defineConfig({
   preview: {headers: ISOLATION_HEADERS},
 
   worker: {
-    // LiteRT's Emscripten WASM loader calls importScripts() internally,
-    // which module-type workers reject outright. `format: 'iife'` is what
-    // makes Vite's `?worker` import produce a classic worker CORRECTLY in
-    // both `vite dev` and `vite build` — the raw `new Worker(new URL(...))`
-    // pattern (no `?worker` suffix) only gets IIFE bundling at build time;
-    // in dev it serves untransformed ESM into a classic script context and
-    // throws "Cannot use import statement outside a module". See
+    // LiteRT's Emscripten WASM loader calls importScripts() internally, which
+    // module-type workers reject outright. `format: 'iife'` is what makes
+    // Vite's `?worker` import produce a classic worker — but ONLY for an
+    // environment that produces bundled output. Vite 8's worker plugin reads
+    //
+    //   workerType = isBundled ? (format === 'es' ? 'module' : 'classic')
+    //                          : 'module'
+    //
+    // so under a plain `vite dev` it ignores this setting entirely and emits
+    // `new Worker(url, {type: 'module'})`. Every backend then dies on
+    // "Module scripts don't support importScripts()". That is what
+    // experimental.bundledDev below is for — the two settings only work as a
+    // pair, do not remove one of them.
+    //
+    // The raw `new Worker(new URL(...))` pattern (no `?worker` suffix) is not
+    // an alternative: it only gets IIFE bundling at build time, and in dev it
+    // serves untransformed ESM into a classic script context and throws
+    // "Cannot use import statement outside a module". See
     // src/demos/depth-anything/stage.ts for the `?worker` import.
     format: 'iife',
+  },
+
+  experimental: {
+    // Bundles the client environment during `vite dev` instead of serving
+    // loose ESM, which is what sets `isBundled` and therefore what makes
+    // `worker.format: 'iife'` above apply in dev as well as in build. Without
+    // it the dev server cannot run ANY LiteRT demo — see the comment there.
+    //
+    // Vite marks this highly experimental, and its caveats are about HMR
+    // boundary computation. That costs this project nothing: there is no UI
+    // framework and so no component state to preserve across an update (see
+    // CLAUDE.md's stack section), and a demo page's real state lives in a
+    // worker that a reload has to recreate anyway.
+    bundledDev: true,
   },
 
   build: {

@@ -106,6 +106,19 @@
 
   --color-focus: var(--wn-blue);
 
+  /* Text drawn directly onto a fullscreened stage — the FPS readout in the
+     corner of the video. Deliberately NOT a semantic fg token and NOT part
+     of the light/dark swap below: what this sits on is camera footage, not
+     the page background, so it has to stay white in both themes. 80% so it
+     reads as an overlay on the picture rather than as page chrome. */
+  --stage-overlay-fg: rgb(255 255 255 / 80%);
+
+  /* Size of that same readout: 3x --text-lg. Not a step on the --text-*
+     scale, because nothing else on the site is set at it and it is not
+     chosen for a document — it is chosen to stay readable on a fullscreen
+     video from across a desk. */
+  --stage-overlay-size: 3.375rem;
+
   /* Backend identity — HUE channel. Distinct from delegation status below.
    * wasm is deliberately neutral: it is a baseline, it should recede. */
   --backend-wasm: var(--gray-500);

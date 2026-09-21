@@ -132,6 +132,10 @@ export function createCompareController(opts: CompareControllerOptions) {
   /** Bumped whenever the input image changes, so it participates in runKey()
    *  the same way version and iteration count do. */
   let sourceGeneration = 0;
+  /** Same idea for a visitor-uploaded .tflite (ui/model-upload.ts) — a
+   *  different model invalidates every card's result, including the ones
+   *  already showing a number for this version and iteration count. */
+  let modelGeneration = 0;
   const logger = opts.logger ?? createLogger(logStatusEl ?? null);
 
   /**
@@ -146,7 +150,7 @@ export function createCompareController(opts: CompareControllerOptions) {
    * including retrying one that failed.
    */
   function runKey(): string {
-    return `${currentLitertVersion}|${currentIterations}|${sourceGeneration}`;
+    return `${currentLitertVersion}|${currentIterations}|${sourceGeneration}|${modelGeneration}`;
   }
 
   // Listen for inference count changes from the slider
@@ -170,6 +174,13 @@ export function createCompareController(opts: CompareControllerOptions) {
   // are selected yet; the visitor's next checkbox click picks it up instead.
   document.addEventListener('imageUploaded', () => {
     sourceGeneration++;
+    void runAll();
+  });
+
+  // Same for a local model upload. Only pages carrying a #model-upload input
+  // ever dispatch this (ui/model-upload.ts), so it is inert everywhere else.
+  document.addEventListener('modelUploaded', () => {
+    modelGeneration++;
     void runAll();
   });
 

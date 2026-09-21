@@ -5,6 +5,7 @@
  */
 import {findDemo} from '../../registry';
 import {LiveStage} from '../../runner/live-stage';
+import {getLocalModel} from '../../ui/model-upload';
 import Yolo26LiveWorker from './worker-entry-live.ts?worker';
 
 const found = findDemo('object-detection');
@@ -13,6 +14,8 @@ const DEMO = found;
 
 export class ObjectDetectionLiveStage extends LiveStage {
   constructor(canvas: HTMLCanvasElement) {
-    super(canvas, new Yolo26LiveWorker(), DEMO.model.url);
+    // getLocalModel is consulted per start(), so an "Upload Model" pick made
+    // after this stage was constructed still reaches the next session.
+    super(canvas, new Yolo26LiveWorker(), DEMO.model.url, {resolveLocalModel: getLocalModel});
   }
 }
