@@ -1,11 +1,11 @@
-/**
+﻿/**
  * EfficientViT segmentation page controller. Two independent run modes share
  * this page, same as object-detection and depth-anything: the discrete
  * N-backend compare grid for a single image, and a live single-backend loop
  * over a camera feed or an uploaded video file.
  *
  * The live half used to be its own page at /efficientvit-live. It was folded
- * in here once every other demo hosted both modes on one URL — two pages for
+ * in here once every other demo hosted both modes on one URL 鈥?two pages for
  * one model was the odd one out. /efficientvit-live now 301s here (see
  * vercel.json), so old links still land somewhere correct.
  *
@@ -48,7 +48,7 @@ function currentInputMode(): InputMode {
 
 /** ONE logger for the whole page. createLogger keeps its own line buffer
  *  and renders by replacing #log-status's entire textContent, so a second
- *  logger on the same element silently wipes the first one's history —
+ *  logger on the same element silently wipes the first one's history 鈥?
  *  the first live line used to erase the whole image-mode transcript. */
 const liveLogger = createLogger(el('log-status'));
 
@@ -70,7 +70,7 @@ const controller = createCompareController({
   getSourceSize: getCurrentImageSize,
   // The compare grid is for Image mode ONLY. Without this gate it auto-runs a
   // full warmup + N-iteration measurement on load whenever `?backend=` is
-  // present, even in Video/Camera mode — which left that mode showing an empty
+  // present, even in Video/Camera mode 鈥?which left that mode showing an empty
   // canvas while the shared log filled with "Inferencing 50/50" and "P90"
   // lines from a discrete run nobody asked for.
   enabled: () => currentInputMode() === 'image',
@@ -79,7 +79,7 @@ const controller = createCompareController({
 controller.applyUrlBackendSelection(null);
 
 /** `?backend=` is comma-separated for the compare grid, but live mode runs
- *  exactly one backend — take the first valid entry so arriving at
+ *  exactly one backend 鈥?take the first valid entry so arriving at
  *  `?backend=webnn-gpu` and switching to Video/Camera doesn't land on "select
  *  a backend first" with nothing preselected. */
 const urlLiveBackend = params.get('backend')?.split(',').map((s) => s.trim()).find(isBackend);
@@ -88,7 +88,7 @@ const urlLiveBackend = params.get('backend')?.split(',').map((s) => s.trim()).fi
 // already registers one (see its own comment); adding a second made one tick
 // fire two passes and measure every backend twice.
 
-// ---- Live mode: single backend, continuous — camera or uploaded video ----
+// ---- Live mode: single backend, continuous 鈥?camera or uploaded video ----
 
 const liveCanvas = el<HTMLCanvasElement>('live-canvas');
 const liveLabelEl = el<HTMLDivElement>('live-label');
@@ -107,7 +107,7 @@ const imageModePanel = el<HTMLDivElement>('image-mode-panel');
 const liveModePanel = el<HTMLDivElement>('live-mode-panel');
 const compareGrid = el<HTMLDivElement>('compare-grid');
 const liveGrid = el<HTMLDivElement>('live-grid');
-/** Layout wrapper, not a control — queried by class because it carries no
+/** Layout wrapper, not a control 鈥?queried by class because it carries no
  *  id on any page. Null-guarded so a page that ever drops it degrades to
  *  the stacked layout rather than throwing on load. */
 const demoContent = document.querySelector<HTMLElement>('.demo-content');
@@ -131,7 +131,7 @@ function setLiveControlsDisabled(disabled: boolean): void {
 }
 
 /** Switches the visible panel/grid for the chosen input mode. Stops any
- *  running live session first — a mode switch mid-run has nowhere sensible to
+ *  running live session first 鈥?a mode switch mid-run has nowhere sensible to
  *  continue, and the site's "measured serially" rule already forbids two
  *  loops at once, so the simplest correct answer is: stop it. */
 function applyInputMode(mode: InputMode): void {
@@ -139,7 +139,7 @@ function applyInputMode(mode: InputMode): void {
 
   const isImage = mode === 'image';
   // Live mode's radio group is a different control from the compare grid's
-  // checkboxes, and only one is visible at a time — without this, a backend
+  // checkboxes, and only one is visible at a time 鈥?without this, a backend
   // ticked for compare looked like it had been silently cleared on the way
   // into Video/Camera. See ui/backend-carryover.ts.
   if (!isImage) carryOverBackend(compareBackendBoxes, liveBackendRadios);
@@ -151,7 +151,7 @@ function applyInputMode(mode: InputMode): void {
   liveModePanel.hidden = isImage;
   liveGrid.hidden = isImage;
   // Moves the run transcript into the empty gutter beside the single live
-  // card — see .demo-content--live in components.css.
+  // card 鈥?see .demo-content--live in components.css.
   demoContent?.classList.toggle('demo-content--live', !isImage);
 
   videoSourceControls.hidden = mode !== 'video';
@@ -177,7 +177,7 @@ videoUpload.addEventListener('change', () => {
   liveToggleButton.disabled = false;
 });
 
-/** Camera, or the uploaded video's own playback — LiveStage treats both
+/** Camera, or the uploaded video's own playback 鈥?LiveStage treats both
  *  identically. Passed as a CALLBACK, not called here: the stage defers it
  *  until the model is compiled, so the source does not run through the ~2s
  *  WebNN build. See runner/live-stage.ts. */
@@ -257,7 +257,7 @@ for (const radio of liveBackendRadios) {
 }
 
 // Called here, not from an inline <script> in the page. Each page used to
-// run setupInferenceCount() twice — once inline, once here — which
+// run setupInferenceCount() twice 鈥?once inline, once here 鈥?which
 // registered the slider listener twice and fired every re-measure twice.
 setupImageUpload();
 setupLiteRtVersionDropdown();
