@@ -196,7 +196,7 @@ interface DemoDefinition {
 - **Three measurement axes: backend × browser channel × LiteRT.js version.** Record all
   three on every result set and **never aggregate across any of them.** Canary and M153
   stable are not necessarily the same WebNN implementation, and neither are 2.5.0 and
-  2.5.3.
+  2.6.0.
 - **COOP/COEP** in both `vercel.json` and `vite.config.ts` (`server.headers`). Verify
   `crossOriginIsolated === true` in production, not just localhost.
 - **NPU availability is hardware-gated, not browser-gated.** `isWebNnSupported()` does
@@ -228,7 +228,7 @@ const wasmRoot = `https://cdn.jsdelivr.net/npm/@litertjs/core@${v}/wasm`;
 Two CDNs deliberately — esm.sh for the module graph, jsDelivr for raw `wasm/` assets. Not
 interchangeable.
 
-**Default version `2.5.3`. Override with `&litertjs=x.x.x`**, e.g.
+**Default version `2.6.0`. Override with `&litertjs=x.x.x`**, e.g.
 `?backend=webnn-npu&litertjs=2.5.0`.
 
 **Validate the version before it reaches `import()`.** Interpolating raw user input into a

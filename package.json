@@ -16,7 +16,7 @@
     "test": "vitest"
   },
   "devDependencies": {
-    "@litertjs/core": "^2.5.3",
+    "@litertjs/core": "^2.6.0",
     "@types/node": "^26.2.0",
     "@webgpu/types": "^0.1.71",
     "stylelint": "^17.14.1",

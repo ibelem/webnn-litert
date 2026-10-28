@@ -4,7 +4,7 @@ import {isValidVersion} from './loader';
 
 describe('isValidVersion', () => {
   it('accepts plain semver', () => {
-    expect(isValidVersion('2.5.3')).toBe(true);
+    expect(isValidVersion('2.6.0')).toBe(true);
     expect(isValidVersion('0.0.1')).toBe(true);
     expect(isValidVersion('10.20.30')).toBe(true);
   });
@@ -33,7 +33,7 @@ describe('isValidVersion', () => {
   });
 
   it('rejects trailing garbage after a valid-looking prefix', () => {
-    expect(isValidVersion('2.5.3; rm -rf')).toBe(false);
-    expect(isValidVersion('2.5.3 ')).toBe(false);
+    expect(isValidVersion('2.6.0; rm -rf')).toBe(false);
+    expect(isValidVersion('2.6.0 ')).toBe(false);
   });
 });

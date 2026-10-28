@@ -49,7 +49,7 @@ the eng review; read it for *why*, not for current state.
   not by loading the page in Chrome and looking at it. This is the actual
   next step, not more building.
 - Delegation on real NPU hardware is confirmed ONLY for `mobilenetv2` on
-  `@litertjs/core@2.5.3` (M0 spike). The other four demos' delegation
+  `@litertjs/core@2.6.0` (M0 spike). The other four demos' delegation
   status is unknown.
 - `depth-anything` was reprioritized to build first for exactly this
   reason (int8, most likely to delegate) but was never re-tested after M0.
@@ -95,10 +95,10 @@ latency second — turns a routine demo site into the reference people cite.
 - **JSPI is always available and always required.** `loadLiteRt(wasmPath, {jspi: true})`
   is mandatory for WebNN; M153 is far past JSPI's Chrome 137 debut. The consequence is
   significant — see *Receipts* below.
-- **LiteRT.js is loaded from CDN at runtime, not bundled.** Default `2.5.3`, overridable
+- **LiteRT.js is loaded from CDN at runtime, not bundled.** Default `2.6.0`, overridable
   via `&litertjs=x.x.x`. It is a devDependency for *types only* (`import type`); the
   runtime comes from esm.sh. See *Runtime loading* below.
-- **WebNN is `[experimental]` in `@litertjs/core@2.5.3`** and half-wired in the TS
+- **WebNN is `[experimental]` in `@litertjs/core@2.6.0`** and half-wired in the TS
   layer (see Premise 2).
 - **COOP/COEP required** for threaded WASM. LiteRT's own dev servers set
   `Cross-Origin-Embedder-Policy: require-corp`
@@ -121,7 +121,7 @@ Agreed during the session:
 
 1. **The site's primary job is delegation truth, not speed.** A silent CPU fallback must
    be impossible to mistake for a WebNN run. Every latency number carries a receipt.
-2. **WebNN in `@litertjs/core@2.5.3` needs a spike before the site is built around it.**
+2. **WebNN in `@litertjs/core@2.6.0` needs a spike before the site is built around it.**
    `packages/core/src/accelerator_types.ts:22` exports
    `ACCELERATORS = ['webgpu', 'wasm']` with no `'webnn'`, and
    `AcceleratorDefaultTensorBufferType` (`:32`) has no `webnn` key — so tensor-copy
@@ -315,7 +315,7 @@ Three non-obvious requirements, all learned from the web-ai-run implementation:
 Load mode is derived from the backend: `jspi: true` for WebNN and WebGPU,
 `threads: true` for the CPU baseline, `threads: false` otherwise.
 
-**Version parameter.** Default `2.5.3`. Override with `&litertjs=x.x.x`, e.g.
+**Version parameter.** Default `2.6.0`. Override with `&litertjs=x.x.x`, e.g.
 `?backend=webnn-npu&litertjs=2.5.0`.
 
 **The version string is validated before it reaches `import()`.** Interpolating raw user
@@ -565,7 +565,7 @@ integration; PR previews give every change a shareable URL. Models are served fr
 record `isFullyAccelerated` per model. No site code. Answers Open Questions 1, 2 and 4.
 
 **M1 — Runner. DONE in part.** Vite + TypeScript skeleton, `vercel.json`, `tokens.css` +
-stylelint, CDN runtime loader (`&litertjs=`, default 2.5.3, validated), metrics, receipts,
+stylelint, CDN runtime loader (`&litertjs=`, default 2.6.0, validated), metrics, receipts,
 console capture, and the `/debug` harness are all built, typechecked and pushed. Open
 Question 5 is partly answered: the HF model fetch and both CDN fetches work under the
 dev-server isolation headers; production still needs confirming.

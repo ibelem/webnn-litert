@@ -14,7 +14,7 @@ import {fetchWithRetry, retryAsync} from './fetch-retry';
 
 export type LiteRt = typeof LiteRtCore;
 
-export const DEFAULT_LITERT_VERSION = '2.5.3';
+export const DEFAULT_LITERT_VERSION = '2.6.0';
 
 /**
  * The version string is interpolated into a module URL, which makes it
