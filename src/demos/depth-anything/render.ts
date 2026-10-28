@@ -1,6 +1,7 @@
 import type {TensorDetails} from '@litertjs/core';
 
 import type {OutputData} from '../../runner/measure';
+import {numberOutput} from '../../runner/output';
 
 /**
  * Min-max normalizes the depth map and colorizes it, then draws to the
@@ -15,8 +16,7 @@ export function renderDepthAnything(
   const output = outputDetails[0];
   if (!output) throw new Error('depth-anything: model declares no outputs');
 
-  const values = data[output.name];
-  if (!values) throw new Error(`depth-anything: no output data for "${output.name}"`);
+  const values = numberOutput(data, output.name, 'depth-anything');
 
   // Reference output shape is [1, H, W] (single channel).
   const shape = Array.from(output.shape);

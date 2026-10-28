@@ -1,3 +1,5 @@
+import type {TypedArray} from '@litertjs/core';
+
 import type {Backend, RunRecord} from './types';
 
 /**
@@ -88,7 +90,7 @@ export interface RenderDataMessage {
     shape: readonly number[];
     dtype: string;
   }[];
-  data: Record<string, Float32Array | Int32Array | Uint8Array | readonly number[]>;
+  data: Record<string, TypedArray | readonly number[]>;
   extra?: unknown;
 }
 

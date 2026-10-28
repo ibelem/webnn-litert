@@ -1,6 +1,7 @@
 import type {TensorDetails} from '@litertjs/core';
 
 import type {OutputData} from '../../runner/measure';
+import {numberOutput} from '../../runner/output';
 
 /**
  * COCO class labels for YOLO detection.
@@ -52,8 +53,7 @@ export function postprocessYolo26(
   const output = outputDetails[0];
   if (!output) throw new Error('yolo26: model declares no outputs');
 
-  const values = data[output.name];
-  if (!values) throw new Error(`yolo26: no output data for "${output.name}"`);
+  const values = numberOutput(data, output.name, 'yolo26');
 
   const shape = Array.from(output.shape);
 

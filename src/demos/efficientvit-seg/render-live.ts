@@ -1,6 +1,7 @@
 import type {TensorDetails} from '@litertjs/core';
 
 import type {OutputData} from '../../runner/measure';
+import {numberOutput} from '../../runner/output';
 import {colorizeSegmentationMask} from './colorize';
 import type {Ade20kPalette} from './render';
 
@@ -23,8 +24,7 @@ export function renderEfficientVitLive(
   const output = outputDetails[0];
   if (!output) throw new Error('efficientvit-seg live: model declares no outputs');
 
-  const values = data[output.name];
-  if (!values) throw new Error(`efficientvit-seg live: no output data for "${output.name}"`);
+  const values = numberOutput(data, output.name, 'efficientvit-seg live');
 
   // Reference output shape is [1, H, W, numClasses] (NHWC).
   const shape = Array.from(output.shape);

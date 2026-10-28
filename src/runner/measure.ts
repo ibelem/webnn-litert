@@ -1,4 +1,4 @@
-import type {CompiledModel, TensorDetails} from '@litertjs/core';
+import type {CompiledModel, DType, TensorDetails, TypedArray} from '@litertjs/core';
 
 import {ensureLiteRt, errorMessage, withTimeout, type LiteRt, type LoadMode} from './loader';
 import {computeMetrics} from './metrics';
@@ -26,12 +26,25 @@ function compileOptionsFor(backend: Backend): CompileOptions {
   }
 }
 
-/** LiteRT's DType is exactly these three (core/src/datatypes.ts DATATYPES). */
-const DTYPE_CTOR = {
+type ZeroCtor = new (length: number) => TypedArray;
+
+// Float16Array is not in the TS lib at ES2022 and may be absent at runtime.
+const Float16Ctor = (globalThis as {Float16Array?: ZeroCtor}).Float16Array;
+
+/** Mirrors core/src/datatypes.ts DATATYPES; bool is stored as Uint8Array. */
+const DTYPE_CTOR: Record<DType, ZeroCtor | undefined> = {
   float32: Float32Array,
   int32: Int32Array,
   uint8: Uint8Array,
-} as const;
+  int8: Int8Array,
+  bool: Uint8Array,
+  uint16: Uint16Array,
+  int16: Int16Array,
+  float16: Float16Ctor,
+  int64: BigInt64Array,
+  uint64: BigUint64Array,
+  float64: Float64Array,
+};
 
 /**
  * Captures console.warn / console.error for the duration of `fn`.

@@ -1,6 +1,7 @@
 import type {TensorDetails} from '@litertjs/core';
 
 import type {OutputData} from '../../runner/measure';
+import {numberOutput} from '../../runner/output';
 
 /** `extra` shape for this demo: the label file's lines, index-aligned to the
  *  model's 1000 output classes. Threaded through RunMessage.extra since the
@@ -23,8 +24,7 @@ export function renderMobilenetv2(
   const output = outputDetails[0];
   if (!output) throw new Error('mobilenetv2: model declares no outputs');
 
-  const values = data[output.name];
-  if (!values) throw new Error(`mobilenetv2: no output data for "${output.name}"`);
+  const values = numberOutput(data, output.name, 'mobilenetv2');
 
   const labels = isMobilenetLabels(extra) ? extra.labels : [];
 

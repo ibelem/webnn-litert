@@ -1,6 +1,7 @@
 import type {TensorDetails} from '@litertjs/core';
 
 import type {OutputData} from '../../runner/measure';
+import {numberOutput} from '../../runner/output';
 import {colorizeSegmentationMask} from './colorize';
 
 /** `extra` shape: the ADE20K palette, index-aligned to the model's 150
@@ -23,8 +24,7 @@ export function renderEfficientVit(
   const output = outputDetails[0];
   if (!output) throw new Error('efficientvit-seg: model declares no outputs');
 
-  const values = data[output.name];
-  if (!values) throw new Error(`efficientvit-seg: no output data for "${output.name}"`);
+  const values = numberOutput(data, output.name, 'efficientvit-seg');
 
   const palette = isAde20kPalette(extra) ? extra.colors : [];
 

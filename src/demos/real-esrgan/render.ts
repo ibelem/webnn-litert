@@ -1,6 +1,7 @@
 import type {TensorDetails} from '@litertjs/core';
 
 import type {OutputData} from '../../runner/measure';
+import {numberOutput} from '../../runner/output';
 import {getLastCrop} from './crop-cache';
 
 /**
@@ -25,8 +26,7 @@ export function renderRealEsrgan(
   const output = outputDetails[0];
   if (!output) throw new Error('real-esrgan: model declares no outputs');
 
-  const values = data[output.name];
-  if (!values) throw new Error(`real-esrgan: no output data for "${output.name}"`);
+  const values = numberOutput(data, output.name, 'real-esrgan');
 
   // Reference output shape is [1, H, W, 3] (NHWC) — same layout as the
   // input, just larger (the model's own upscale factor).

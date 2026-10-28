@@ -1,3 +1,5 @@
+import type {NumberTypedArray} from '@litertjs/core';
+
 /**
  * Argmax over the channel axis per pixel, colorized with a palette — shared
  * between efficientvit-seg's opaque render and the live path's blended
@@ -5,7 +7,7 @@
  */
 export function colorizeSegmentationMask(
     outWidth: number, outHeight: number, numClasses: number,
-    values: Float32Array | Int32Array | Uint8Array | readonly number[],
+    values: NumberTypedArray | readonly number[],
     palette: ReadonlyArray<readonly [number, number, number]>): OffscreenCanvas {
   const maskCanvas = new OffscreenCanvas(outWidth, outHeight);
   const maskCtx = maskCanvas.getContext('2d');

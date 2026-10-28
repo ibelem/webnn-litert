@@ -77,7 +77,8 @@ export class MobilenetDomStage {
     if (!output) throw new Error(`mobilenetv2: no output data for "${outputName}"`);
 
     // Get top 5 predictions
-    const scores = Array.from(output).map((score, i) => ({score, label: labels[i] ?? `class ${i}`}));
+    const scores = Array.from(
+        {length: output.length}, (_, i) => ({score: Number(output[i]), label: labels[i] ?? `class ${i}`}));
     scores.sort((a, b) => b.score - a.score);
     const top5 = scores.slice(0, 5);
 

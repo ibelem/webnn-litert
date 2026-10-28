@@ -1,6 +1,7 @@
 import type {TensorDetails} from '@litertjs/core';
 
 import type {OutputData} from '../../runner/measure';
+import {numberOutput} from '../../runner/output';
 
 /**
  * Argmax over the 6 category channels per pixel, colorized and alpha-blended
@@ -25,8 +26,7 @@ export function renderSelfieMulticlass(
   const output = outputDetails[0];
   if (!output) throw new Error('selfie-multiclass: model declares no outputs');
 
-  const values = data[output.name];
-  if (!values) throw new Error(`selfie-multiclass: no output data for "${output.name}"`);
+  const values = numberOutput(data, output.name, 'selfie-multiclass');
 
   // Reference output shape is [1, H, W, numClasses] (NHWC).
   const shape = Array.from(output.shape);
